@@ -1,0 +1,89 @@
+---
+title: "FlashcardEntity"
+description: "Represents flashcards for spaced repetition learning in StudyQuest"
+---
+
+## Overview
+
+FlashcardEntity represents a single flashcard with a front (question) and back (answer) used for spaced repetition study sessions.
+
+## Properties
+
+<ParamField path="id" type="String" required>
+  Unique identifier for the flashcard
+</ParamField>
+
+<ParamField path="front" type="String" required>
+  The question or prompt displayed on the front of the card
+</ParamField>
+
+<ParamField path="back" type="String" required>
+  The answer or explanation displayed on the back of the card
+</ParamField>
+
+## Constructor
+
+```dart FlashcardEntity
+FlashcardEntity({
+  required this.id,
+  required this.front,
+  required this.back,
+});
+```
+
+## Factory Methods
+
+### fromMap
+
+Creates a FlashcardEntity from a Map, typically from Supabase database queries. Maps database column names to entity properties.
+
+<ParamField path="map['id']" type="String" required>
+  Flashcard identifier from database
+</ParamField>
+
+<ParamField path="map['front_text']" type="String">
+  Question text from database. Defaults to 'Sin texto' if null.
+</ParamField>
+
+<ParamField path="map['back_text']" type="String">
+  Answer text from database. Defaults to 'Sin respuesta' if null.
+</ParamField>
+
+```dart FlashcardEntity
+factory FlashcardEntity.fromMap(Map<String, dynamic> map) {
+  return FlashcardEntity(
+    id: map['id'] as String,
+    front: map['front_text'] ?? 'Sin texto',
+    back: map['back_text'] ?? 'Sin respuesta',
+  );
+}
+```
+
+## Usage Example
+
+```dart
+// Creating from database response
+final flashcardData = await supabase
+    .from('flashcards')
+    .select()
+    .eq('document_id', docId);
+
+final flashcards = flashcardData
+    .map((data) => FlashcardEntity.fromMap(data))
+    .toList();
+
+// Using in a study session
+for (var card in flashcards) {
+  print('Question: ${card.front}');
+  // User attempts to answer
+  print('Answer: ${card.back}');
+}
+```
+
+## Database Schema Mapping
+
+| Database Column | Entity Property | Description |
+|----------------|----------------|-------------|
+| `id` | `id` | Unique identifier |
+| `front_text` | `front` | Question text |
+| `back_text` | `back` | Answer text |

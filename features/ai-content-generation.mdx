@@ -1,0 +1,147 @@
+---
+title: 'AI Content Generation'
+description: 'Transform your study materials into interactive learning experiences with AI-powered content generation'
+---
+
+# AI Content Generation
+
+StudyQuest uses advanced AI technology to automatically convert your PDF documents into comprehensive, interactive study materials. Upload any study material and let our AI create flashcards, quizzes, and structured topics tailored to your learning needs.
+
+## How It Works
+
+<Steps>
+  <Step title="Upload Your PDF">
+    Select any PDF document from your device - lecture notes, textbooks, research papers, or study guides. StudyQuest supports multi-page PDFs of any length.
+  </Step>
+  
+  <Step title="AI Processing Begins">
+    Our AI worker immediately starts analyzing your document. The status changes to "processing" and you'll see a progress indicator in your world list.
+  </Step>
+  
+  <Step title="Content Extraction">
+    The AI reads every page of your PDF, extracting all text content. For optimal results, ensure your PDF contains readable text (not scanned images without OCR).
+  </Step>
+  
+  <Step title="Intelligent Chunking">
+    Large documents are divided into logical 25,000-character chunks. This ensures the AI can process even lengthy textbooks while maintaining context and accuracy.
+  </Step>
+  
+  <Step title="Smart Analysis">
+    For each chunk, our AI (powered by Google's Gemini 2.5 Flash) identifies key concepts, extracts important information, and structures the content into topics.
+  </Step>
+  
+  <Step title="Content Generation">
+    The AI creates:
+    - **Flashcards**: 3-5 flashcards per topic covering crucial concepts with clear questions and answers
+    - **Quizzes**: 2-4 multiple-choice questions with 4 options, including credible distractors and detailed explanations
+    - **Topics**: Organized learning modules with descriptive titles and summaries
+  </Step>
+  
+  <Step title="Auto-Naming">
+    The AI analyzes the beginning and end of your document to generate an epic, memorable title for your learning world (e.g., "Redes Cisco", "Ciberseguridad Básica", "Anatomía Humana").
+  </Step>
+  
+  <Step title="Ready to Learn">
+    Once processing completes, your world status changes to "ready" and you can start exploring your AI-generated study materials immediately.
+  </Step>
+</Steps>
+
+## What Gets Generated
+
+<CardGroup cols={2}>
+  <Card title="Flashcards" icon="cards-blank">
+    Concept-focused question-and-answer pairs designed for quick memorization and spaced repetition learning.
+  </Card>
+  
+  <Card title="Quizzes" icon="circle-question">
+    Multiple-choice questions that test deep understanding with explanations to reinforce correct answers.
+  </Card>
+  
+  <Card title="Topics" icon="list-tree">
+    Organized learning modules that structure your content into logical, manageable sections.
+  </Card>
+  
+  <Card title="Summaries" icon="file-lines">
+    Motivational 2-3 sentence summaries that give context to what you'll learn in each world.
+  </Card>
+</CardGroup>
+
+## Processing Time
+
+<Note>
+  Processing time depends on document length:
+  - **Short PDFs** (10-20 pages): 30 seconds - 2 minutes
+  - **Medium PDFs** (50-100 pages): 3-8 minutes
+  - **Large PDFs** (200+ pages): 10-20 minutes
+  
+  The AI processes chunks with a 2-second delay between chunks to ensure quality and avoid rate limits.
+</Note>
+
+## Quality and Accuracy
+
+<Accordion title="How accurate is the AI-generated content?">
+  StudyQuest uses Google's Gemini 2.5 Flash model, known for excellent instruction-following and JSON structure adherence. The AI acts as a "rigorous university professor" when analyzing content, ensuring:
+  
+  - **Relevant extraction**: Only meaningful content is processed (indexes and bibliographies are skipped)
+  - **Credible distractors**: Quiz wrong answers are plausible to test real understanding
+  - **Clear explanations**: Every quiz includes a detailed explanation of why the correct answer is right
+  - **Contextual understanding**: The AI maintains context across document sections
+</Accordion>
+
+<Accordion title="What types of content work best?">
+  Best results with:
+  - Lecture notes and slides
+  - Textbook chapters
+  - Study guides and summaries
+  - Academic papers with clear structure
+  - Technical documentation
+  
+  Less optimal:
+  - Scanned PDFs without OCR (text layer)
+  - Image-heavy documents with minimal text
+  - Tables and charts (text extraction only)
+</Accordion>
+
+<Accordion title="Can I edit generated content?">
+  Currently, generated content is read-only to maintain the integrity of the spaced repetition system and progress tracking. Future updates may include content editing capabilities.
+</Accordion>
+
+## Behind the Scenes
+
+The AI worker runs continuously, monitoring your document queue. When you upload a PDF:
+
+1. **File Storage**: PDF is securely stored in Supabase Storage
+2. **Status Update**: Document status set to "processing"
+3. **Worker Detection**: Background worker picks up the processing job
+4. **Text Extraction**: Full PDF text extracted using PyPDF
+5. **AI Analysis**: Gemini AI generates structured JSON content for each chunk
+6. **Database Storage**: Topics, flashcards, and quizzes saved to your database
+7. **Completion**: Document renamed with AI-generated title and marked "ready"
+
+<Tip>
+  The worker processes documents sequentially. If you upload multiple PDFs, they'll be processed one at a time in the order they were uploaded.
+</Tip>
+
+## Example Output
+
+For a networking course PDF, the AI might generate:
+
+**Topic**: "Modelo OSI y Capas de Red"
+
+**Flashcard Example**:
+- Front: "¿Cuántas capas tiene el modelo OSI?"
+- Back: "El modelo OSI tiene 7 capas, desde la capa física hasta la capa de aplicación."
+
+**Quiz Example**:
+- Question: "¿Qué capa del modelo OSI es responsable del enrutamiento de paquetes?"
+- Options: ["Capa de Red", "Capa de Transporte", "Capa de Enlace de Datos", "Capa Física"]
+- Correct Answer: "Capa de Red"
+- Explanation: "La capa 3 (Red) se encarga del direccionamiento lógico y el enrutamiento de paquetes entre redes."
+
+## Next Steps
+
+Once your content is generated:
+- Explore your world through the [Level Map](/features/levels)
+- Start learning with [Flashcards](/features/flashcards)
+- Test your knowledge with [Quizzes](/features/quizzes)
+- Earn XP through [Gamification](/features/gamification)

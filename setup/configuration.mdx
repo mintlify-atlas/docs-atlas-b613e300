@@ -1,0 +1,460 @@
+---
+title: Configuration
+description: Set up environment variables, API keys, and secrets for StudyQuest
+---
+
+## Overview
+
+StudyQuest requires configuration in two places:
+
+1. **Flutter App**: Supabase credentials for authentication and database access
+2. **Python Worker**: Supabase and Google Gemini credentials for AI processing
+
+<Warning>
+  Never commit secrets to version control. Always use `.gitignore` to exclude configuration files containing sensitive data.
+</Warning>
+
+## Flutter App Configuration
+
+### Create Secrets File
+
+The Flutter app reads Supabase credentials from a Dart file that you must create:
+
+<Steps>
+  <Step title="Create the Secrets File">
+    Create `lib/core/secrets.dart` in your project:
+    
+    ```dart lib/core/secrets.dart
+    class Secrets {
+      // Supabase Configuration
+      static const String supabaseUrl = 'https://your-project.supabase.co';
+      static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+      
+      // Private constructor to prevent instantiation
+      Secrets._();
+    }
+    ```
+    
+    <Note>
+      Replace `your-project` and the anon key with your actual Supabase project credentials.
+    </Note>
+  </Step>
+  
+  <Step title="Find Your Supabase Credentials">
+    Get your credentials from the Supabase dashboard:
+    
+    1. Go to [app.supabase.com](https://app.supabase.com)
+    2. Select your project
+    3. Navigate to **Settings > API**
+    4. Copy:
+       - **Project URL** → `supabaseUrl`
+       - **anon/public key** → `supabaseAnonKey`
+    
+    <Warning>
+      Use the **anon key** for the Flutter app, NOT the service_role key. The service_role key bypasses Row Level Security and should only be used in the backend worker.
+    </Warning>
+  </Step>
+  
+  <Step title="Add to .gitignore">
+    Prevent committing secrets by adding to `.gitignore`:
+    
+    ```bash .gitignore
+    # Secrets and sensitive files
+    lib/core/secrets.dart
+    backend/.env
+    *.env
+    ```
+    
+    Verify it's ignored:
+    ```bash
+    git status
+    # secrets.dart should not appear in untracked files
+    ```
+  </Step>
+</Steps>
+
+### How Secrets Are Used
+
+The app initializes Supabase in `main.dart` using these credentials:
+
+```dart lib/main.dart
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/secrets.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await NotificationService.init();
+  
+  // Initialize Supabase with credentials from secrets
+  await Supabase.initialize(
+    url: Secrets.supabaseUrl,
+    anonKey: Secrets.supabaseAnonKey,
+  );
+
+  // Initialize Dependency Injection
+  await di.init();
+
+  runApp(const MyApp());
+}
+```
+
+The Supabase client is then accessed throughout the app:
+
+```dart lib/injection_container.dart
+import 'package:get_it/get_it.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+final sl = GetIt.instance; // Service Locator
+
+Future<void> init() async {
+  // Register Supabase client as singleton
+  sl.registerLazySingleton(() => Supabase.instance.client);
+  
+  // Other registrations use this client
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+  
+  sl.registerLazySingleton<HomeRemoteDataSource>(
+    () => HomeRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+}
+```
+
+## Python Worker Configuration
+
+The backend worker needs additional credentials for AI processing and database admin access.
+
+### Create Environment File
+
+<Steps>
+  <Step title="Create .env File">
+    Create `backend/.env` in the backend directory:
+    
+    ```bash backend/.env
+    # Supabase Configuration (Backend)
+    SUPABASE_URL=https://your-project.supabase.co
+    SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...  # service_role key
+    
+    # Google Gemini AI
+    GEMINI_API_KEY=AIzaSy...
+    ```
+  </Step>
+  
+  <Step title="Get Supabase Service Role Key">
+    The worker needs elevated permissions:
+    
+    1. Go to **Settings > API** in Supabase dashboard
+    2. Find **service_role key** (not anon key)
+    3. Copy to `SUPABASE_KEY` in `.env`
+    
+    <Warning>
+      The service_role key has full database access and bypasses Row Level Security. Keep it secret and only use it in server-side code.
+    </Warning>
+  </Step>
+  
+  <Step title="Get Google Gemini API Key">
+    Create a Gemini API key:
+    
+    1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+    2. Sign in with your Google account
+    3. Click **Create API Key**
+    4. Copy the key to `GEMINI_API_KEY` in `.env`
+    
+    <Note>
+      Gemini API has a generous free tier. Check [current pricing](https://ai.google.dev/pricing) for limits.
+    </Note>
+  </Step>
+</Steps>
+
+### How Environment Variables Are Used
+
+The worker loads these variables on startup:
+
+```python backend/worker.py
+import os
+from dotenv import load_dotenv
+from supabase import create_client, Client
+import google.generativeai as genai
+
+# Load variables from .env file
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Validate all required variables are present
+if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY]):
+    raise Exception("❌ Faltan variables de entorno en backend/.env")
+
+# Initialize clients
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-2.5-flash')
+```
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Never Commit Secrets" icon="lock">
+    Add all configuration files to `.gitignore`:
+    
+    ```bash .gitignore
+    # Secrets
+    lib/core/secrets.dart
+    backend/.env
+    .env
+    .env.*
+    ```
+  </Card>
+  
+  <Card title="Use Different Keys" icon="key">
+    Use different credentials for development and production:
+    
+    - Development: Test Supabase project
+    - Production: Production Supabase project
+    - Create separate Gemini API keys if needed
+  </Card>
+  
+  <Card title="Rotate Keys Regularly" icon="arrows-rotate">
+    Update your API keys periodically:
+    
+    1. Generate new keys in respective dashboards
+    2. Update configuration files
+    3. Redeploy the app and worker
+    4. Revoke old keys after verification
+  </Card>
+  
+  <Card title="Restrict Permissions" icon="shield">
+    Use the principle of least privilege:
+    
+    - Flutter app: Use anon key (limited access)
+    - Worker: Use service_role key (full access)
+    - Set Row Level Security policies in Supabase
+  </Card>
+</CardGroup>
+
+## Environment-Specific Configuration
+
+### Development vs Production
+
+Manage multiple environments using different configuration files:
+
+<Tabs>
+  <Tab title="Development">
+    ```dart lib/core/secrets_dev.dart
+    class Secrets {
+      static const String supabaseUrl = 'https://dev-project.supabase.co';
+      static const String supabaseAnonKey = 'dev-anon-key...';
+    }
+    ```
+    
+    ```bash backend/.env.dev
+    SUPABASE_URL=https://dev-project.supabase.co
+    SUPABASE_KEY=dev-service-role-key...
+    GEMINI_API_KEY=dev-gemini-key...
+    ```
+  </Tab>
+  
+  <Tab title="Production">
+    ```dart lib/core/secrets_prod.dart
+    class Secrets {
+      static const String supabaseUrl = 'https://prod-project.supabase.co';
+      static const String supabaseAnonKey = 'prod-anon-key...';
+    }
+    ```
+    
+    ```bash backend/.env.prod
+    SUPABASE_URL=https://prod-project.supabase.co
+    SUPABASE_KEY=prod-service-role-key...
+    GEMINI_API_KEY=prod-gemini-key...
+    ```
+  </Tab>
+</Tabs>
+
+Load the appropriate environment:
+
+```bash
+# Development
+cp lib/core/secrets_dev.dart lib/core/secrets.dart
+cp backend/.env.dev backend/.env
+
+# Production
+cp lib/core/secrets_prod.dart lib/core/secrets.dart
+cp backend/.env.prod backend/.env
+```
+
+<Tip>
+  Use build flavors in Flutter to automatically select the correct configuration. See [Flutter documentation](https://flutter.dev/docs/deployment/flavors) for details.
+</Tip>
+
+## Configuration Validation
+
+Verify your configuration is correct:
+
+### Test Flutter App Configuration
+
+```bash
+# Run the app and check logs
+flutter run
+```
+
+You should see successful Supabase initialization:
+
+```
+Flutter run key commands.
+r Hot reload.
+R Hot restart.
+q Quit (terminate the application on the device).
+```
+
+If Supabase fails to initialize, you'll see an error immediately.
+
+### Test Python Worker Configuration
+
+```bash
+cd backend
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+python worker.py
+```
+
+You should see:
+
+```
+🤖 StudyQuest AI Worker (V4 - Auto-Nombramiento) iniciado...
+Esperando documentos en la cola...
+```
+
+If environment variables are missing, you'll see:
+
+```
+❌ Faltan variables de entorno en backend/.env
+```
+
+## Optional Configuration
+
+### Notification Service
+
+Configure local notifications for study reminders:
+
+```dart lib/core/services/notification_service.dart
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+
+class NotificationService {
+  static Future<void> init() async {
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+    
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    
+    final DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+    
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsDarwin,
+        );
+    
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+}
+```
+
+### App Theme
+
+Customize the app theme in `lib/core/theme/app_theme.dart`:
+
+```dart lib/core/theme/app_theme.dart
+import 'package:flutter/material.dart';
+
+class AppTheme {
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.blue,
+        brightness: Brightness.light,
+      ),
+    );
+  }
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Supabase initialization fails">
+    **Symptoms**: App crashes immediately on launch
+    
+    **Cause**: Invalid or missing Supabase credentials
+    
+    **Solution**:
+    1. Verify `lib/core/secrets.dart` exists
+    2. Check URL format: `https://project-id.supabase.co`
+    3. Ensure anon key is correct (starts with `eyJ`)
+    4. Check for typos in the Secrets class
+  </Accordion>
+  
+  <Accordion title="Worker can't connect to Supabase">
+    **Symptoms**: Worker crashes or can't fetch documents
+    
+    **Cause**: Missing or invalid environment variables
+    
+    **Solution**:
+    1. Verify `backend/.env` exists
+    2. Check all three variables are set:
+       - `SUPABASE_URL`
+       - `SUPABASE_KEY` (service_role, not anon)
+       - `GEMINI_API_KEY`
+    3. Ensure no extra quotes or spaces
+    4. Restart the worker after changes
+  </Accordion>
+  
+  <Accordion title="AI processing fails">
+    **Symptoms**: Documents stay in "processing" status forever
+    
+    **Cause**: Invalid Gemini API key or quota exceeded
+    
+    **Solution**:
+    1. Verify Gemini API key is valid
+    2. Check [API quotas](https://ai.google.dev/pricing) in Google AI Studio
+    3. Look for errors in worker logs:
+       ```bash
+       python worker.py
+       # Check for API error messages
+       ```
+    4. Try a different Gemini model if needed:
+       ```python
+       model = genai.GenerativeModel('gemini-1.5-flash')
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Supabase Setup" icon="database" href="/setup/supabase">
+    Configure your Supabase database, storage, and security
+  </Card>
+  
+  <Card title="Run the App" icon="play" href="/quickstart">
+    Start developing with the complete setup
+  </Card>
+  
+  <Card title="Supabase Integration" icon="database" href="/development/supabase-integration">
+    Learn how Supabase is integrated in the app
+  </Card>
+  
+  <Card title="Architecture" icon="diagram-project" href="/development/architecture">
+    Understand the app architecture and configuration usage
+  </Card>
+</CardGroup>

@@ -1,0 +1,117 @@
+---
+title: "LevelEntity"
+description: "Represents learning levels and their completion status in StudyQuest"
+---
+
+## Overview
+
+LevelEntity represents a learning level within a document's learning path. Each level has a specific type (flashcards, quiz, mixed, or exam) and tracks completion and lock status.
+
+## LevelType Enum
+
+Defines the type of learning activity for a level:
+
+```dart
+enum LevelType { flashcards, quiz, mixed, exam }
+```
+
+- **flashcards**: Spaced repetition flashcard session
+- **quiz**: Multiple-choice quiz session
+- **mixed**: Combination of flashcards and quizzes
+- **exam**: Comprehensive assessment
+
+## Properties
+
+<ParamField path="id" type="String" required>
+  Unique identifier for the level
+</ParamField>
+
+<ParamField path="title" type="String" required>
+  Display name of the level (e.g., "Basic Concepts", "Advanced Practice")
+</ParamField>
+
+<ParamField path="type" type="LevelType" required>
+  Type of learning activity. One of: `flashcards`, `quiz`, `mixed`, or `exam`
+</ParamField>
+
+<ParamField path="isLocked" type="bool" default="false">
+  Whether the level is locked and requires completing previous levels first
+</ParamField>
+
+<ParamField path="isCompleted" type="bool" default="false">
+  Whether the user has successfully completed this level
+</ParamField>
+
+<ParamField path="difficulty" type="int" default="1">
+  Difficulty rating from 1 to 5 stars. Indicates the challenge level of the content.
+</ParamField>
+
+## Constructor
+
+```dart LevelEntity
+const LevelEntity({
+  required this.id,
+  required this.title,
+  required this.type,
+  this.isLocked = false,
+  this.isCompleted = false,
+  this.difficulty = 1,
+});
+```
+
+## Usage Example
+
+```dart
+// Creating a learning path with multiple levels
+final levels = [
+  LevelEntity(
+    id: 'level_1',
+    title: 'Introduction',
+    type: LevelType.flashcards,
+    isLocked: false,
+    isCompleted: true,
+    difficulty: 1,
+  ),
+  LevelEntity(
+    id: 'level_2',
+    title: 'Basic Quiz',
+    type: LevelType.quiz,
+    isLocked: false,
+    isCompleted: false,
+    difficulty: 2,
+  ),
+  LevelEntity(
+    id: 'level_3',
+    title: 'Final Exam',
+    type: LevelType.exam,
+    isLocked: true, // Locked until previous levels completed
+    isCompleted: false,
+    difficulty: 5,
+  ),
+];
+
+// Filtering available levels
+final availableLevels = levels.where((level) => !level.isLocked).toList();
+
+// Checking completion status
+final completedCount = levels.where((level) => level.isCompleted).length;
+print('Completed $completedCount/${levels.length} levels');
+
+// Displaying level info with difficulty
+for (var level in levels) {
+  final stars = '⭐' * level.difficulty;
+  final status = level.isLocked ? '🔒' : (level.isCompleted ? '✅' : '📖');
+  print('$status ${level.title} $stars');
+}
+```
+
+## Level Progression Logic
+
+Typical progression pattern:
+
+```
+1. flashcards (unlocked) → Complete → Earn XP
+2. quiz (unlocked) → Complete → Earn XP  
+3. mixed (locked) → Unlocks after completing 1 & 2
+4. exam (locked) → Unlocks after completing all previous
+```

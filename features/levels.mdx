@@ -1,0 +1,297 @@
+---
+title: 'Levels & Progression'
+description: 'Navigate your learning journey through structured levels with progressive difficulty'
+---
+
+# Levels & Progression
+
+Levels are the core structure of your learning journey in StudyQuest. Each level represents a topic with specific learning activities - flashcards, quizzes, or mixed challenges. Levels unlock progressively as you demonstrate mastery.
+
+## Level Types
+
+StudyQuest features four distinct level types, each offering a unique learning experience:
+
+<Tabs>
+  <Tab title="Flashcards">
+    **Flashcard Levels** focus on memorization and recall through spaced repetition.
+    
+    - **Icon**: Flashcard/cards symbol
+    - **Content**: 3-5 flashcards per level
+    - **Reward**: +10 XP on completion
+    - **Focus**: Memorization, concept recall
+    - **Best For**: Learning definitions, formulas, and key facts
+    
+    Flashcard levels are ideal for building foundational knowledge quickly.
+  </Tab>
+  
+  <Tab title="Quiz">
+    **Quiz Levels** test comprehension with multiple-choice questions.
+    
+    - **Icon**: Question mark or quiz symbol
+    - **Content**: 2-4 multiple-choice questions
+    - **Reward**: +20 XP on completion
+    - **Focus**: Understanding, application, analysis
+    - **Challenge**: 3-life system (game over on 3 wrong answers)
+    - **Best For**: Testing knowledge and identifying gaps
+    
+    Quiz levels require deeper understanding and critical thinking.
+  </Tab>
+  
+  <Tab title="Mixed">
+    **Mixed Levels** combine both flashcards and quizzes in one level.
+    
+    - **Icon**: Combined flashcard + quiz symbol
+    - **Content**: Mix of flashcards and quiz questions
+    - **Reward**: Variable XP (10-30 XP)
+    - **Focus**: Comprehensive review
+    - **Best For**: End-of-section reviews, concept reinforcement
+    
+    Mixed levels provide varied learning experiences in a single session.
+  </Tab>
+  
+  <Tab title="Exam">
+    **Exam Levels** are comprehensive assessments covering multiple topics.
+    
+    - **Icon**: Document/exam symbol
+    - **Content**: Extended quiz format (5-10 questions)
+    - **Reward**: +50 XP on completion
+    - **Focus**: Cumulative knowledge assessment
+    - **Challenge**: 3-life system with no mid-exam saves
+    - **Best For**: Milestone assessments, final reviews
+    
+    Exam levels represent major checkpoints in your learning progression.
+  </Tab>
+</Tabs>
+
+## Level Properties
+
+Each level has specific attributes that define the learning experience:
+
+<CardGroup cols={2}>
+  <Card title="Title" icon="heading">
+    Descriptive name indicating the topic covered (e.g., "Modelo OSI y Capas de Red").
+  </Card>
+  
+  <Card title="Type" icon="shapes">
+    One of four types: flashcards, quiz, mixed, or exam.
+  </Card>
+  
+  <Card title="Lock Status" icon="lock">
+    Indicates if the level is accessible or requires completing prerequisites.
+  </Card>
+  
+  <Card title="Completion Status" icon="circle-check">
+    Shows if you've completed the level (checkmark indicator).
+  </Card>
+  
+  <Card title="Difficulty" icon="star">
+    Star rating from 1-5 indicating complexity and challenge level.
+  </Card>
+  
+  <Card title="Order Index" icon="list-ol">
+    Position in the progression sequence within your world.
+  </Card>
+</CardGroup>
+
+## Difficulty System
+
+Levels are rated with a 1-5 star difficulty system:
+
+| Stars | Difficulty | Description |
+|-------|-----------|-------------|
+| ⭐ | Beginner | Foundational concepts, straightforward questions |
+| ⭐⭐ | Easy | Basic application of concepts |
+| ⭐⭐⭐ | Moderate | Standard difficulty, some complex concepts |
+| ⭐⭐⭐⭐ | Challenging | Advanced concepts, nuanced questions |
+| ⭐⭐⭐⭐⭐ | Expert | Comprehensive mastery required, complex analysis |
+
+<Note>
+  Difficulty ratings are AI-assigned based on topic complexity, question depth, and concept interconnections.
+</Note>
+
+## Progression System
+
+### Unlocking Levels
+
+Levels unlock according to a sequential progression model:
+
+<Steps>
+  <Step title="Initial State">
+    When you first create a world, only the first 1-2 levels are unlocked. All others show lock icons.
+  </Step>
+  
+  <Step title="Complete Current Level">
+    Successfully complete an unlocked level by finishing all flashcards or passing all quiz questions.
+  </Step>
+  
+  <Step title="Auto-Unlock">
+    The next level in the sequence automatically unlocks upon completion of the previous level.
+  </Step>
+  
+  <Step title="Continue Progression">
+    Work through levels sequentially, building knowledge progressively as complexity increases.
+  </Step>
+</Steps>
+
+### Level Map Navigation
+
+The Level Map is your visual progression interface:
+
+- **Vertical Scrolling**: Scroll through all levels in your world
+- **Visual Indicators**: 
+  - Locked levels show lock icons and dimmed appearance
+  - Completed levels display checkmarks
+  - Current available levels are bright and fully accessible
+- **Level Details**: Tap any unlocked level to see its type and difficulty
+- **Direct Launch**: Tap to immediately start the level activity
+
+## Completion Tracking
+
+### What Counts as Complete?
+
+<Tabs>
+  <Tab title="Flashcard Levels">
+    **Complete when**: All flashcards in the session have been marked as "Lo sé" (I know it).
+    
+    - Spaced repetition queue is empty
+    - Progress bar reaches 100%
+    - Completion dialog appears
+    - +10 XP awarded
+    - Level marked with checkmark
+  </Tab>
+  
+  <Tab title="Quiz Levels">
+    **Complete when**: All quiz questions answered correctly with at least 1 life remaining.
+    
+    - All questions answered
+    - Lives > 0
+    - Confetti celebration plays
+    - +20 XP awarded
+    - Level marked with checkmark
+    
+    **Not complete if**: You run out of lives (game over).
+  </Tab>
+  
+  <Tab title="Mixed Levels">
+    **Complete when**: Both flashcard and quiz components successfully finished.
+    
+    - All flashcards reviewed
+    - All quiz questions answered correctly
+    - Combined XP reward (10-30 XP)
+    - Level marked with checkmark
+  </Tab>
+  
+  <Tab title="Exam Levels">
+    **Complete when**: Extended quiz passed with lives remaining.
+    
+    - All 5-10 questions answered correctly
+    - Lives > 0
+    - Major celebration animation
+    - +50 XP awarded
+    - Level marked with checkmark
+  </Tab>
+</Tabs>
+
+### Persistent Progress
+
+Your level completion is saved automatically:
+
+- **Database Storage**: Completion status synced to Supabase
+- **Cross-Device**: Progress accessible from any device with your account
+- **Permanent Record**: Completed levels stay completed (no expiration)
+- **Replay Available**: You can replay completed levels to refresh knowledge
+
+<Tip>
+  Replay completed levels periodically to reinforce long-term retention and combat the forgetting curve.
+</Tip>
+
+## Strategic Learning Path
+
+### Recommended Approach
+
+<Steps>
+  <Step title="Start with Flashcards">
+    Begin each new topic with flashcard levels to build vocabulary and basic concepts.
+  </Step>
+  
+  <Step title="Test with Quizzes">
+    After 2-3 flashcard levels, attempt quiz levels to test understanding.
+  </Step>
+  
+  <Step title="Review Mixed Levels">
+    Use mixed levels to consolidate knowledge before moving to new topics.
+  </Step>
+  
+  <Step title="Attempt Exams">
+    Take exam levels only after completing several related topics to ensure readiness.
+  </Step>
+  
+  <Step title="Revisit as Needed">
+    Return to earlier levels if you struggle with later content. Progressive mastery is key.
+  </Step>
+</Steps>
+
+### Tips for Success
+
+<CardGroup cols={2}>
+  <Card title="Don't Rush" icon="clock">
+    Take time to understand each level thoroughly before advancing. Speed isn't the goal - mastery is.
+  </Card>
+  
+  <Card title="Use Difficulty Ratings" icon="star">
+    Higher-star levels require more preparation. Review related content before attempting.
+  </Card>
+  
+  <Card title="Learn from Failures" icon="book">
+    Failed quizzes aren't setbacks - they identify knowledge gaps. Review and retry.
+  </Card>
+  
+  <Card title="Balance Types" icon="scale-balanced">
+    Mix flashcard and quiz levels rather than doing all of one type consecutively.
+  </Card>
+</CardGroup>
+
+## Level Structure in Database
+
+Each level entity contains:
+
+```dart
+LevelEntity {
+  id: String              // Unique identifier
+  title: String           // Topic name
+  type: LevelType         // flashcards, quiz, mixed, exam
+  isLocked: bool          // Accessibility status
+  isCompleted: bool       // Completion status
+  difficulty: int         // 1-5 star rating
+  orderIndex: int         // Sequence position
+}
+```
+
+## Frequently Asked Questions
+
+<Accordion title="Can I skip locked levels?">
+  No. Levels must be completed sequentially to ensure proper knowledge scaffolding. Each level builds on previous concepts.
+</Accordion>
+
+<Accordion title="What happens if I fail a level?">
+  For quiz/exam levels with lives systems, failing means restarting that level from the beginning. The level remains unlocked for unlimited retries. Flashcard levels can't be "failed" - you simply continue reviewing until mastery.
+</Accordion>
+
+<Accordion title="Do completed levels ever lock again?">
+  No. Once completed, levels remain permanently unlocked and marked as complete. You can replay them anytime.
+</Accordion>
+
+<Accordion title="How are levels ordered?">
+  The AI determines level order based on topic dependencies and logical learning progression when generating content from your PDF.
+</Accordion>
+
+<Accordion title="Can I see all levels at once?">
+  Yes, the Level Map displays all levels vertically. Locked levels are visible (but not playable) so you can see your learning path ahead.
+</Accordion>
+
+## Related Features
+
+- **[Flashcards](/features/flashcards)**: Deep dive into flashcard-type levels
+- **[Quizzes](/features/quizzes)**: Complete guide to quiz-type levels
+- **[Gamification](/features/gamification)**: How level completion contributes to XP and achievements
+- **[AI Content Generation](/features/ai-content-generation)**: How levels are created from your PDFs

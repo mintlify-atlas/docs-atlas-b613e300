@@ -1,0 +1,130 @@
+---
+title: "UserEntity & ProfileEntity"
+description: "Core user entities representing authentication and profile data in StudyQuest"
+---
+
+## Overview
+
+StudyQuest uses two main entities to represent user data:
+- **UserEntity**: Authentication and basic user information
+- **ProfileEntity**: Extended profile data including XP and streaks
+
+---
+
+## UserEntity
+
+Represents the authenticated user with basic account information.
+
+### Properties
+
+<ParamField path="id" type="String" required>
+  Unique identifier for the user
+</ParamField>
+
+<ParamField path="email" type="String" required>
+  User's email address used for authentication
+</ParamField>
+
+<ParamField path="username" type="String" required>
+  Display name for the user
+</ParamField>
+
+<ParamField path="avatarUrl" type="String?">
+  Optional URL to the user's avatar image. Can be null.
+</ParamField>
+
+### Constructor
+
+```dart UserEntity
+const UserEntity({
+  required this.id,
+  required this.email,
+  required this.username,
+  this.avatarUrl,
+});
+```
+
+### Usage Example
+
+```dart
+final user = UserEntity(
+  id: 'user_123',
+  email: 'student@example.com',
+  username: 'StudyMaster',
+  avatarUrl: 'https://example.com/avatar.png',
+);
+```
+
+---
+
+## ProfileEntity
+
+Extended user profile containing gamification metrics.
+
+### Properties
+
+<ParamField path="id" type="String" required>
+  Unique identifier matching the user's ID
+</ParamField>
+
+<ParamField path="username" type="String?">
+  Optional username display. Can be null.
+</ParamField>
+
+<ParamField path="avatarUrl" type="String?">
+  Optional URL to the user's avatar image. Can be null.
+</ParamField>
+
+<ParamField path="totalXp" type="int" required>
+  Total experience points earned by the user. Defaults to 0 if not provided.
+</ParamField>
+
+<ParamField path="currentStreak" type="int" required>
+  Number of consecutive days the user has studied. Defaults to 0 if not provided.
+</ParamField>
+
+### Constructor
+
+```dart ProfileEntity
+ProfileEntity({
+  required this.id,
+  this.username,
+  this.avatarUrl,
+  required this.totalXp,
+  required this.currentStreak,
+});
+```
+
+### Factory Methods
+
+#### fromMap
+
+Creates a ProfileEntity from a Map, typically from Supabase database queries.
+
+```dart ProfileEntity
+factory ProfileEntity.fromMap(Map<String, dynamic> map) {
+  return ProfileEntity(
+    id: map['id'] as String,
+    username: map['username'] as String?,
+    avatarUrl: map['avatar_url'] as String?,
+    totalXp: map['total_xp'] as int? ?? 0,
+    currentStreak: map['current_streak'] as int? ?? 0,
+  );
+}
+```
+
+### Usage Example
+
+```dart
+// Creating from database response
+final profileData = await supabase
+    .from('profiles')
+    .select()
+    .eq('id', userId)
+    .single();
+
+final profile = ProfileEntity.fromMap(profileData);
+
+print('User has ${profile.totalXp} XP');
+print('Current streak: ${profile.currentStreak} days');
+```

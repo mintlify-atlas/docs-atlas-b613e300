@@ -1,97 +1,147 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to StudyQuest"
+description: "Transform your study materials into interactive learning experiences with AI"
 ---
 
-## Setting up
+<div style={{
+  background: 'linear-gradient(135deg, #2281fa 0%, #095fd9 100%)',
+  padding: '48px 32px',
+  borderRadius: '8px',
+  color: 'white',
+  marginBottom: '32px'
+}}>
+  <h1 style={{ color: 'white', fontSize: '40px', fontWeight: '700', marginBottom: '16px' }}>
+    Study Smarter with AI
+  </h1>
+  <p style={{ color: 'white', fontSize: '20px', opacity: 0.95, maxWidth: '700px' }}>
+    StudyQuest transforms your PDF documents into personalized flashcards and quizzes using Google's Gemini AI. Learn through gamification, track your progress, and master any subject.
+  </p>
+</div>
 
-Get your documentation site up and running in minutes.
+## Get Started
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+Start your learning journey in minutes with StudyQuest.
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Introduction"
+    icon="book-open"
+    href="/introduction"
   >
-    Edit your docs locally and preview them in real time.
+    Learn what StudyQuest can do for your studies
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
+    title="Quickstart Guide"
+    icon="rocket"
+    href="/quickstart"
   >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+    Set up StudyQuest and upload your first document
   </Card>
   <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
+    title="Installation"
+    icon="download"
+    href="/setup/installation"
   >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+    Install and configure the mobile app
   </Card>
   <Card
-    title="Code samples"
+    title="Supabase Setup"
+    icon="database"
+    href="/setup/supabase"
+  >
+    Configure your backend and AI worker
+  </Card>
+</CardGroup>
+
+## Core Features
+
+Discover the powerful features that make StudyQuest your ultimate study companion.
+
+<CardGroup cols={2}>
+  <Card
+    title="AI Content Generation"
+    icon="sparkles"
+    href="/features/ai-content-generation"
+  >
+    Automatically generate study materials from PDFs
+  </Card>
+  <Card
+    title="Interactive Flashcards"
+    icon="cards-blank"
+    href="/features/flashcards"
+  >
+    Master concepts with spaced repetition
+  </Card>
+  <Card
+    title="Adaptive Quizzes"
+    icon="list-check"
+    href="/features/quizzes"
+  >
+    Test your knowledge with AI-generated questions
+  </Card>
+  <Card
+    title="Progressive Levels"
+    icon="trophy"
+    href="/features/levels"
+  >
+    Unlock new challenges as you progress
+  </Card>
+</CardGroup>
+
+## Why StudyQuest?
+
+<CardGroup cols={3}>
+  <Card
+    title="AI-Powered"
+    icon="brain"
+  >
+    Google Gemini AI extracts key concepts and generates personalized study materials
+  </Card>
+  <Card
+    title="Gamified Learning"
+    icon="gamepad"
+  >
+    Stay motivated with XP, levels, and achievements
+  </Card>
+  <Card
+    title="Cross-Platform"
+    icon="mobile"
+  >
+    Study anywhere on Android, iOS, or desktop
+  </Card>
+</CardGroup>
+
+## For Developers
+
+Built with modern architecture and best practices.
+
+<CardGroup cols={2}>
+  <Card
+    title="Clean Architecture"
+    icon="layer-group"
+    href="/development/clean-architecture"
+  >
+    Explore the separation of concerns and domain-driven design
+  </Card>
+  <Card
+    title="BLoC State Management"
+    icon="diagram-project"
+    href="/development/state-management"
+  >
+    Learn how we manage app state with flutter_bloc
+  </Card>
+  <Card
+    title="AI Worker Backend"
+    icon="server"
+    href="/development/ai-worker"
+  >
+    Understand the Python worker that processes PDFs
+  </Card>
+  <Card
+    title="API Reference"
     icon="code"
-    href="/essentials/code"
+    href="/api/user-entity"
   >
-    Add sample code to demonstrate how to use your product.
+    Complete documentation of entities and services
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+</CardGroup>

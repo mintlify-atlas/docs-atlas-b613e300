@@ -1,0 +1,220 @@
+---
+title: "NotificationService"
+description: "Local notification service for streak reminders and study alerts"
+---
+
+## Overview
+
+NotificationService manages local push notifications for StudyQuest, specifically handling streak reminders to encourage daily study habits. It uses the `flutter_local_notifications` package and supports timezone-based scheduling.
+
+## Methods
+
+### init
+
+Initializes the notification service with platform-specific settings and requests necessary permissions.
+
+<ResponseField name="return" type="Future<void>">
+  Completes when notification service is fully initialized and permissions are granted
+</ResponseField>
+
+```dart
+static Future<void> init() async {
+  tz.initializeTimeZones();
+  tz.setLocalLocation(tz.getLocation('America/Mexico_City'));
+
+  const AndroidInitializationSettings androidSettings = 
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
+    requestSoundPermission: true,
+    requestBadgePermission: true,
+    requestAlertPermission: true,
+  );
+
+  const InitializationSettings initSettings = InitializationSettings(
+    android: androidSettings,
+    iOS: iosSettings,
+  );
+
+  await _notificationsPlugin.initialize(initSettings);
+
+  // Request Android permissions
+  await _notificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.requestNotificationsPermission();
+      
+  await _notificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.requestExactAlarmsPermission();
+}
+```
+
+**Usage Example:**
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize notifications before running app
+  await NotificationService.init();
+  
+  runApp(MyApp());
+}
+```
+
+**Platform Configuration:**
+
+<Expandable title="Android Setup">
+- Uses `@mipmap/ic_launcher` as the notification icon
+- Requests notification and exact alarm permissions
+- Requires permissions declared in `AndroidManifest.xml`
+</Expandable>
+
+<Expandable title="iOS Setup">
+- Requests sound, badge, and alert permissions
+- User must grant permissions through iOS system dialog
+</Expandable>
+
+---
+
+### scheduleStreakReminder
+
+Schedules a daily notification to remind users to maintain their study streak.
+
+<ResponseField name="return" type="Future<void>">
+  Completes when the notification is successfully scheduled
+</ResponseField>
+
+```dart
+static Future<void> scheduleStreakReminder() async {
+  await _notificationsPlugin.cancelAll();
+
+  final now = tz.TZDateTime.now(tz.local);
+  var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 20); 
+  scheduledDate = scheduledDate.add(const Duration(days: 1));
+
+  // TEST MODE: Triggers in 10 seconds instead of at 8 PM
+  scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
+
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'streak_channel', 
+    'Recordatorios de Racha',
+    channelDescription: 'Avisa cuando tu racha de estudio está en peligro',
+    importance: Importance.max,
+    priority: Priority.high,
+    icon: '@mipmap/ic_launcher',
+    color: Color(0xFF009688), // Teal color
+  );
+
+  const NotificationDetails platformSpecifics = 
+      NotificationDetails(android: androidDetails);
+
+  await _notificationsPlugin.zonedSchedule(
+    0, // notification id
+    '¡Tu racha está en peligro! 🔥',
+    'Aún no has estudiado hoy. Entra a StudyQuest y completa una lección rápida.',
+    scheduledDate,
+    platformSpecifics,
+    androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    uiLocalNotificationDateInterpretation: 
+        UILocalNotificationDateInterpretation.absoluteTime,
+  );
+  
+  print("⏰ Megáfono listo: Notificación programada para $scheduledDate");
+}
+```
+
+**Usage Example:**
+
+```dart
+// Schedule reminder when user completes a study session
+await NotificationService.scheduleStreakReminder();
+
+// Or when app starts to ensure reminder is active
+void initState() {
+  super.initState();
+  NotificationService.scheduleStreakReminder();
+}
+```
+
+**Notification Details:**
+
+<ParamField path="id" type="int" default="0">
+  Notification identifier. Using the same ID replaces previous notifications.
+</ParamField>
+
+<ParamField path="title" type="String" default="¡Tu racha está en peligro! 🔥">
+  Eye-catching title to encourage action
+</ParamField>
+
+<ParamField path="body" type="String">
+  Message: "Aún no has estudiado hoy. Entra a StudyQuest y completa una lección rápida."
+</ParamField>
+
+<ParamField path="scheduledDate" type="tz.TZDateTime">
+  Scheduled for 8 PM next day (or 10 seconds in test mode)
+</ParamField>
+
+**Channel Configuration (Android):**
+
+- **Channel ID**: `streak_channel`
+- **Channel Name**: Recordatorios de Racha
+- **Importance**: Max (appears at top of notification list)
+- **Priority**: High (triggers sound and heads-up notification)
+- **Color**: Teal (#009688)
+
+---
+
+## Implementation Notes
+
+<Note>
+**Test Mode**: The current implementation includes a test mode that triggers notifications after 10 seconds instead of at 8 PM. Remove or comment out this line for production:
+
+```dart
+// Remove this line for production:
+scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
+```
+</Note>
+
+<Warning>
+**Timezone**: The service is configured for `America/Mexico_City` timezone. Update this if deploying to different regions:
+
+```dart
+tz.setLocalLocation(tz.getLocation('America/New_York')); // Example
+```
+</Warning>
+
+## Complete Usage Example
+
+```dart
+import 'package:studyquest/core/services/notification_service.dart';
+
+class StudySessionScreen extends StatefulWidget {
+  @override
+  _StudySessionScreenState createState() => _StudySessionScreenState();
+}
+
+class _StudySessionScreenState extends State<StudySessionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure reminder is scheduled when user starts studying
+    NotificationService.scheduleStreakReminder();
+  }
+
+  Future<void> completeSession() async {
+    // Update user progress...
+    
+    // Reschedule reminder for tomorrow
+    await NotificationService.scheduleStreakReminder();
+    
+    // Show completion dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Great job! 🎉'),
+        content: Text('Your streak continues! Come back tomorrow.'),
+      ),
+    );
+  }
+}
+```

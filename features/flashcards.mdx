@@ -1,0 +1,184 @@
+---
+title: 'Flashcards'
+description: 'Master concepts quickly with interactive flashcards and spaced repetition learning'
+---
+
+# Flashcards
+
+Flashcards in StudyQuest provide an engaging, interactive way to memorize key concepts using proven spaced repetition techniques. Each flashcard presents a question on the front and the answer on the back, helping you actively recall information.
+
+## How Flashcards Work
+
+<Steps>
+  <Step title="Select a Flashcard Level">
+    From the level map, tap any flashcard-type level (indicated by the flashcard icon). Each level contains 3-5 flashcards related to a specific topic.
+  </Step>
+  
+  <Step title="View the Question">
+    The flashcard appears with the question displayed prominently. Take a moment to think about your answer before flipping.
+  </Step>
+  
+  <Step title="Flip the Card">
+    Tap anywhere on the card to reveal the answer with a smooth 3D flip animation. The card rotates to show the back side.
+  </Step>
+  
+  <Step title="Hear the Answer (Optional)">
+    Text-to-speech automatically reads the answer aloud when you flip the card, reinforcing auditory learning.
+  </Step>
+  
+  <Step title="Self-Assess">
+    Two buttons appear:
+    - **"Lo sé" (I know it)**: Removes the card from your review queue
+    - **"Repasar" (Review)**: Moves the card to the end of the queue for another review
+  </Step>
+  
+  <Step title="Continue Learning">
+    Work through all cards in the queue until you've mastered them all. The progress bar shows your advancement.
+  </Step>
+</Steps>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Spaced Repetition" icon="rotate">
+    Cards you struggle with automatically cycle back for additional review, optimizing your learning efficiency.
+  </Card>
+  
+  <Card title="3D Flip Animation" icon="rotate-3d">
+    Smooth, realistic card-flipping animation provides tactile feedback and makes studying more engaging.
+  </Card>
+  
+  <Card title="Text-to-Speech" icon="volume-high">
+    Answers are read aloud automatically (Spanish voice), helping auditory learners and improving pronunciation.
+  </Card>
+  
+  <Card title="Progress Tracking" icon="chart-line">
+    Real-time progress bar shows how many cards remain and tracks your completion percentage.
+  </Card>
+</CardGroup>
+
+## The Learning Algorithm
+
+StudyQuest uses a queue-based spaced repetition system:
+
+<Tabs>
+  <Tab title="Initial Queue">
+    When you start a flashcard session, all cards for that topic are loaded into a queue. The counter shows "Restantes: X" (Remaining: X).
+  </Tab>
+  
+  <Tab title="Confident Response">
+    When you mark a card as "Lo sé" (I know it), it's permanently removed from the current session queue. This card won't appear again in this session.
+  </Tab>
+  
+  <Tab title="Needs Review">
+    When you mark a card as "Repasar" (Review), it's moved to the back of the queue. You'll see it again later in the same session after reviewing other cards.
+  </Tab>
+  
+  <Tab title="Completion">
+    The session ends when all cards have been marked as "known." You earn +10 XP and the level is marked as completed.
+  </Tab>
+</Tabs>
+
+## User Interface
+
+### Card Design
+
+**Front (Question)**:
+- White background
+- Bold, centered text
+- "PREGUNTA" label at bottom
+- Large, readable font
+
+**Back (Answer)**:
+- Light indigo background
+- Regular weight text
+- "RESPUESTA" label at top
+- Answer spoken aloud via TTS
+
+### Action Buttons
+
+<CardGroup cols={2}>
+  <Card title="Repasar (Red)" icon="xmark">
+    Red circular button with X icon. Use when you need more practice with this concept.
+  </Card>
+  
+  <Card title="Lo sé (Green)" icon="check">
+    Green circular button with checkmark. Use when you've mastered this flashcard.
+  </Card>
+</CardGroup>
+
+## Tips for Effective Learning
+
+<Tip>
+  **Think before flipping**: Challenge yourself to recall the answer before flipping the card. This active recall strengthens memory formation.
+</Tip>
+
+<Tip>
+  **Be honest with self-assessment**: Only mark cards as "known" when you can confidently explain the concept. It's okay to review cards multiple times.
+</Tip>
+
+<Tip>
+  **Use audio reinforcement**: Listen to the text-to-speech pronunciation. Hearing the answer engages multiple learning pathways.
+</Tip>
+
+<Tip>
+  **Study in short sessions**: Review flashcards in 5-10 minute bursts rather than marathon sessions. This improves retention.
+</Tip>
+
+<Tip>
+  **Regular practice**: Return to completed flashcard levels periodically to reinforce long-term memory.
+</Tip>
+
+## Accessibility Features
+
+- **Text-to-Speech**: Spanish language support with adjustable speech rate (0.5x speed for clarity)
+- **Large Text**: Font sizes optimized for readability
+- **Smooth Scrolling**: Long text content is scrollable with physics-based scrolling
+- **Color Contrast**: High contrast between text and backgrounds
+
+## Completion Rewards
+
+When you complete all flashcards in a level:
+
+1. **XP Award**: Earn +10 XP instantly
+2. **Level Complete**: The topic is marked as completed with a checkmark
+3. **Next Level Unlocked**: The next level in the sequence may unlock
+4. **Progress Saved**: Your completion is permanently saved to your profile
+
+<Note>
+  Flashcard sessions can be paused and resumed. Your progress is saved automatically as you work through the queue.
+</Note>
+
+## Flashcard Structure
+
+Each flashcard contains:
+
+- **ID**: Unique identifier
+- **Front Text**: The question or concept prompt
+- **Back Text**: The answer or explanation
+- **Topic Association**: Linked to a specific topic in your world
+- **Mastery Level**: Tracks your familiarity (starts at level 1)
+
+## Best Practices
+
+<Accordion title="How many flashcards should I review per session?">
+  StudyQuest organizes flashcards by topic, with 3-5 cards per session. Complete entire topics rather than studying individual cards in isolation. This maintains conceptual connections.
+</Accordion>
+
+<Accordion title="What if a flashcard seems incorrect?">
+  AI-generated content aims for high accuracy but may occasionally have errors. Mark the card as "Review" and make a mental note. Future updates will include content editing.
+</Accordion>
+
+<Accordion title="Can I disable text-to-speech?">
+  Currently, TTS is enabled by default. You can lower your device volume if you prefer silent study. Per-feature audio controls are planned for future releases.
+</Accordion>
+
+<Accordion title="How does mastery level work?">
+  Each flashcard has a mastery level (1-5) that tracks your long-term retention. Currently, this increases as you successfully review cards. Future updates will use this for adaptive scheduling.
+</Accordion>
+
+## Related Features
+
+- **[Quizzes](/features/quizzes)**: Test deeper understanding with multiple-choice questions
+- **[Levels](/features/levels)**: Explore the progression system and level types
+- **[Gamification](/features/gamification)**: See how flashcard completion contributes to XP and achievements

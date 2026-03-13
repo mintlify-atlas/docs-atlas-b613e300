@@ -1,0 +1,349 @@
+---
+title: 'Gamification'
+description: 'Boost motivation with XP, streaks, achievements, and progression rewards'
+---
+
+# Gamification
+
+StudyQuest transforms learning into an engaging, game-like experience through experience points (XP), daily streaks, progressive unlocks, and achievement systems. These features motivate consistent study habits and celebrate your learning milestones.
+
+## Experience Points (XP)
+
+XP is the core currency of progression in StudyQuest, earned by completing learning activities.
+
+### How to Earn XP
+
+<CardGroup cols={2}>
+  <Card title="Flashcard Completion" icon="cards-blank">
+    **+10 XP** per completed flashcard level.
+    
+    Awarded when you successfully review all flashcards in a topic.
+  </Card>
+  
+  <Card title="Quiz Completion" icon="circle-check">
+    **+20 XP** per completed quiz level.
+    
+    Earned by answering all quiz questions correctly (with lives remaining).
+  </Card>
+  
+  <Card title="Mixed Level Completion" icon="layer-group">
+    **+10 to +30 XP** per mixed level.
+    
+    Variable reward based on combined flashcard and quiz content.
+  </Card>
+  
+  <Card title="Exam Completion" icon="graduation-cap">
+    **+50 XP** per completed exam level.
+    
+    Major reward for comprehensive assessments covering multiple topics.
+  </Card>
+</CardGroup>
+
+<Note>
+  XP is only awarded upon successful completion. Failed quiz attempts (running out of lives) don't earn XP.
+</Note>
+
+### XP Display
+
+Your total XP is prominently displayed:
+
+- **Profile Page**: Large XP counter with lightning bolt icon
+- **Home Page**: XP total in header or profile section
+- **Completion Dialogs**: XP rewards shown when completing levels
+- **Progress Tracking**: Cumulative XP across all worlds
+
+### XP Mechanics
+
+```dart
+// XP is added via AuthRepository
+await authRepository.addXp(amount);
+
+// XP additions are:
+// - Immediate (added to profile instantly)
+// - Persistent (saved to database)
+// - Cumulative (never decreases)
+// - Cross-device (synced via Supabase)
+```
+
+<Tip>
+  XP never decreases. Failed levels don't subtract XP, encouraging risk-free learning and experimentation.
+</Tip>
+
+## Level Progression System
+
+Beyond XP numbers, StudyQuest uses progression unlocks to guide your learning journey:
+
+<Steps>
+  <Step title="Sequential Unlocking">
+    Complete one level to unlock the next. This ensures proper knowledge scaffolding.
+  </Step>
+  
+  <Step title="Visual Progress">
+    Lock icons clearly show which levels are inaccessible. Completed levels display checkmarks.
+  </Step>
+  
+  <Step title="Achievement Satisfaction">
+    Each unlock provides a micro-achievement, maintaining momentum and motivation.
+  </Step>
+  
+  <Step title="Clear Path Forward">
+    The level map shows your entire progression path, helping you visualize learning goals.
+  </Step>
+</Steps>
+
+## Daily Streaks
+
+Streaks track consecutive days of study activity, encouraging daily engagement.
+
+### How Streaks Work
+
+<Tabs>
+  <Tab title="Starting a Streak">
+    Your streak begins at 0. Complete any level (flashcard, quiz, mixed, exam) on day 1 to start your streak at 1.
+  </Tab>
+  
+  <Tab title="Maintaining Streaks">
+    Complete at least one level every calendar day to increment your streak. Streaks increase by 1 per active day.
+  </Tab>
+  
+  <Tab title="Breaking Streaks">
+    Missing a full day without completing any level resets your streak to 0. 
+    
+    **Grace Period**: Some implementations include a small grace period (e.g., study by 2 AM the next day).
+  </Tab>
+  
+  <Tab title="Streak Recovery">
+    If your streak breaks, simply start over by completing a level. Previous high streaks may be recorded separately.
+  </Tab>
+</Tabs>
+
+### Streak Display
+
+Your current streak is shown:
+
+- **Profile Page**: Fire icon (🔥) with streak number
+- **Home Page**: Streak counter in header
+- **Notifications**: Daily reminders about streak risk (see [Notifications](/features/notifications))
+
+<Warning>
+  Streaks are timezone-dependent. Ensure your device timezone is correct to avoid unexpected streak breaks.
+</Warning>
+
+## Completion Rewards & Celebrations
+
+Every level completion triggers satisfying feedback:
+
+### Visual Celebrations
+
+<CardGroup cols={2}>
+  <Card title="Success Dialogs" icon="party-horn">
+    Modal dialogs announce completion with celebratory messages like "¡Nivel Completado! 🎉" or "¡Examen Completado! 🎓".
+  </Card>
+  
+  <Card title="Confetti Animations" icon="burst">
+    Explosive confetti particle effects for quiz and exam completions create a festive atmosphere.
+  </Card>
+  
+  <Card title="Avatar Reactions" icon="face-smile">
+    Animated avatar characters celebrate with you, displaying happy/celebration expressions.
+  </Card>
+  
+  <Card title="XP Badges" icon="award">
+    Orange lightning bolt badges display your XP reward prominently in completion dialogs.
+  </Card>
+</CardGroup>
+
+### Audio Feedback
+
+- **Success Sounds**: "Correct" chime plays on quiz correct answers
+- **Error Sounds**: "Wrong" buzzer plays on incorrect answers
+- **Text-to-Speech**: Answers read aloud for multisensory learning
+
+### Progress Indicators
+
+- **Progress Bars**: Real-time bars show completion percentage during levels
+- **Checkmarks**: Completed levels marked with green checkmarks on level map
+- **Unlocks**: Lock icons disappearing as new levels become available
+
+## Motivation Psychology
+
+StudyQuest's gamification leverages proven psychological principles:
+
+<Accordion title="Variable Rewards">
+  Different XP amounts for different activities create varied reward schedules, maintaining engagement. High-value exam completions provide occasional "big wins."
+</Accordion>
+
+<Accordion title="Progress Visibility">
+  XP totals, streak counters, and level maps provide constant feedback on progress, satisfying the need for competence and achievement.
+</Accordion>
+
+<Accordion title="Loss Aversion">
+  The risk of losing your streak (displayed in notification reminders) creates urgency to study daily, leveraging loss aversion psychology.
+</Accordion>
+
+<Accordion title="Micro-Goals">
+  Each level is a small, achievable goal. Frequent completions provide regular dopamine hits, building positive associations with studying.
+</Accordion>
+
+<Accordion title="Clear Paths">
+  Sequential unlocking provides a clear "next step," reducing decision paralysis and maintaining focus.
+</Accordion>
+
+<Accordion title="Celebration Rituals">
+  Confetti, sounds, and dialogs create celebration moments, making learning feel rewarding and fun.
+</Accordion>
+
+## Achievement Tracking
+
+While not fully implemented in UI yet, StudyQuest tracks several achievement metrics:
+
+### Tracked Metrics
+
+- **Total XP**: Cumulative experience across all worlds
+- **Current Streak**: Consecutive study days
+- **Levels Completed**: Total count of completed levels
+- **Worlds Created**: Number of uploaded and processed documents
+- **Quiz Accuracy**: Percentage of correct quiz answers (backend tracking)
+- **Study Time**: Total time spent in flashcard/quiz sessions (estimated)
+
+### Future Achievements
+
+<CardGroup cols={2}>
+  <Card title="XP Milestones" icon="trophy">
+    Badges for reaching 100, 500, 1000, 5000, 10000 XP.
+  </Card>
+  
+  <Card title="Streak Milestones" icon="fire">
+    Special rewards for 7-day, 30-day, 100-day, 365-day streaks.
+  </Card>
+  
+  <Card title="World Completion" icon="globe">
+    Badges for completing all levels in a world (100% completion).
+  </Card>
+  
+  <Card title="Perfect Quizzes" icon="star">
+    Recognition for completing quizzes without losing any lives.
+  </Card>
+  
+  <Card title="Speed Learner" icon="bolt">
+    Awards for completing multiple levels in a single session.
+  </Card>
+  
+  <Card title="Knowledge Master" icon="brain">
+    Unlock after completing worlds across multiple subject areas.
+  </Card>
+</CardGroup>
+
+## Leaderboards (Planned)
+
+Future versions may include competitive features:
+
+- **Global Leaderboards**: Compete with all StudyQuest users on total XP
+- **Friend Leaderboards**: Compare progress with friends
+- **Weekly Challenges**: Time-limited XP competitions
+- **Subject-Specific Rankings**: Top learners in specific topics
+
+<Note>
+  Leaderboards are optional. All gamification features work fully in solo mode without social comparison.
+</Note>
+
+## Customization (Future)
+
+Planned personalization options:
+
+- **Avatar Selection**: Choose or customize your learning companion avatar
+- **Themes**: Unlock visual themes with XP milestones
+- **Celebration Preferences**: Toggle confetti, sounds, and animations
+- **Difficulty Modifiers**: Optional hard mode for bonus XP
+
+## Gamification Strategy Tips
+
+<CardGroup cols={2}>
+  <Card title="Daily Consistency" icon="calendar-check">
+    Aim for daily study sessions (even 5-10 minutes) to maintain streaks rather than marathon sessions.
+  </Card>
+  
+  <Card title="Complete Worlds" icon="circle-check">
+    Finish entire worlds for comprehensive knowledge and the satisfaction of 100% completion.
+  </Card>
+  
+  <Card title="Challenge Yourself" icon="dumbbell">
+    Attempt higher-difficulty levels (4-5 stars) for the same XP but greater learning impact.
+  </Card>
+  
+  <Card title="Celebrate Milestones" icon="cake">
+    Screenshot your XP milestones (100, 500, 1000) to track long-term progress.
+  </Card>
+</CardGroup>
+
+<Tip>
+  Focus on learning, not just XP. Gamification is a motivational tool, but the real achievement is knowledge mastery.
+</Tip>
+
+## Balancing Fun and Learning
+
+StudyQuest gamification is designed to **enhance**, not replace, genuine learning:
+
+| Gamification Element | Learning Purpose |
+|---------------------|------------------|
+| **XP Rewards** | Recognize effort and milestone completion |
+| **Sequential Unlocks** | Ensure proper knowledge scaffolding |
+| **Daily Streaks** | Build consistent study habits |
+| **Difficulty Stars** | Guide appropriate challenge selection |
+| **Completion Celebrations** | Create positive associations with learning |
+| **Progress Visibility** | Provide metacognitive awareness of growth |
+
+<Warning>
+  Avoid gaming the system by rushing through content just for XP. Take time to genuinely learn each concept.
+</Warning>
+
+## Technical Implementation
+
+### XP Addition
+
+```dart
+// XP is added via dependency injection
+final authRepo = di.sl<AuthRepository>();
+await authRepo.addXp(10); // Flashcard completion
+await authRepo.addXp(20); // Quiz completion
+
+// Updates profile in Supabase:
+// - Increments total_xp column
+// - Syncs across devices instantly
+// - Never decrements (additive only)
+```
+
+### Streak Tracking
+
+```dart
+// Streak tracked in ProfileEntity
+ProfileEntity {
+  currentStreak: int  // Consecutive days
+}
+
+// Backend logic (planned):
+// - Check last activity timestamp
+// - If > 24 hours, reset to 0
+// - If < 24 hours, increment by 1
+// - Update daily at midnight
+```
+
+### Level Completion Marking
+
+```dart
+// Mark level completed via LevelRepository
+await levelRepo.markLevelCompleted(topicId);
+
+// Database update:
+// - Sets is_completed = true
+// - Unlocks next level (order_index + 1)
+// - Triggers confetti/dialog UI
+// - Awards XP via AuthRepository
+```
+
+## Related Features
+
+- **[Levels](/features/levels)**: Understanding progression and unlocking mechanics
+- **[Authentication](/features/authentication)**: How XP and streaks are tied to your profile
+- **[Notifications](/features/notifications)**: Daily reminders to maintain your streak
+- **Profile Page**: View detailed stats and achievements (in app)

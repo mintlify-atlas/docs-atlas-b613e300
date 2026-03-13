@@ -1,0 +1,682 @@
+---
+title: "State Management with BLoC"
+description: "Using the BLoC pattern for predictable state management in StudyQuest"
+---
+
+## Why BLoC?
+
+**BLoC (Business Logic Component)** is a state management pattern that separates business logic from UI. StudyQuest uses the `flutter_bloc` package because it:
+
+- **Separates concerns**: UI and business logic are completely decoupled
+- **Testable**: Business logic can be tested without widgets
+- **Predictable**: State changes are explicit and traceable
+- **Scalable**: Works well for complex apps with many features
+- **Reactive**: Uses streams for real-time updates
+
+## BLoC Architecture
+
+```
+┌──────────────┐
+│   WIDGET     │
+│  (UI Layer)  │
+└──────┬───────┘
+       │
+       │ 1. Dispatches Event
+       ▼
+┌──────────────┐
+│     BLOC     │
+│ (Logic Layer)│
+│              │
+│ Events   →   │  2. Processes Event
+│ States   ←   │  3. Calls Repository
+└──────┬───────┘  4. Emits State
+       │
+       │ 5. Listens to State
+       ▼
+┌──────────────┐
+│   WIDGET     │  6. Rebuilds UI
+│  (Updated)   │
+└──────────────┘
+```
+
+## BLoC Components
+
+Every BLoC has three parts:
+
+<Steps>
+  <Step title="Events">
+    User actions that trigger state changes (e.g., `LoginRequested`)
+  </Step>
+  
+  <Step title="States">
+    UI states representing the current condition (e.g., `AuthLoading`, `AuthSuccess`)
+  </Step>
+  
+  <Step title="BLoC">
+    The logic that processes events and emits states
+  </Step>
+</Steps>
+
+## Real Example: AuthBloc
+
+Let's examine the authentication BLoC from StudyQuest.
+
+### 1. Define Events
+
+Events represent user intentions:
+
+```dart lib/features/auth/presentation/bloc/auth_event.dart
+import 'package:equatable/equatable.dart';
+
+abstract class AuthEvent extends Equatable {
+  const AuthEvent();
+
+  @override
+  List<Object> get props => [];
+}
+
+class LoginRequested extends AuthEvent {
+  final String email;
+  final String password;
+
+  const LoginRequested({
+    required this.email,
+    required this.password,
+  });
+
+  @override
+  List<Object> get props => [email, password];
+}
+
+class RegisterRequested extends AuthEvent {
+  final String email;
+  final String password;
+  final String username;
+
+  const RegisterRequested({
+    required this.email,
+    required this.password,
+    required this.username,
+  });
+
+  @override
+  List<Object> get props => [email, password, username];
+}
+```
+
+<Note>
+  **Equatable** allows BLoC to compare events efficiently. Include all properties in the `props` getter.
+</Note>
+
+### 2. Define States
+
+States represent the current UI condition:
+
+```dart lib/features/auth/presentation/bloc/auth_state.dart
+import 'package:equatable/equatable.dart';
+import '../../domain/entities/user_entity.dart';
+
+abstract class AuthState extends Equatable {
+  const AuthState();
+  
+  @override
+  List<Object> get props => [];
+}
+
+class AuthInitial extends AuthState {}
+
+class AuthLoading extends AuthState {}
+
+class AuthSuccess extends AuthState {
+  final UserEntity user;
+  const AuthSuccess(this.user);
+  
+  @override
+  List<Object> get props => [user];
+}
+
+class AuthFailure extends AuthState {
+  final String message;
+  const AuthFailure(this.message);
+
+  @override
+  List<Object> get props => [message];
+}
+```
+
+<Tip>
+  Design states to represent **what the UI needs to show**, not how to implement it. Keep states simple and focused.
+</Tip>
+
+### 3. Implement the BLoC
+
+The BLoC connects events to states:
+
+```dart lib/features/auth/presentation/bloc/auth_bloc.dart
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:equatable/equatable.dart';
+import '../../domain/entities/user_entity.dart';
+import '../../domain/repositories/auth_repository.dart';
+
+part 'auth_event.dart';
+part 'auth_state.dart';
+
+class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  final AuthRepository authRepository;
+
+  AuthBloc({required this.authRepository}) : super(AuthInitial()) {
+    
+    // Handle LOGIN event
+    on<LoginRequested>((event, emit) async {
+      // 1. Emit loading state
+      emit(AuthLoading());
+
+      // 2. Call repository
+      final result = await authRepository.loginWithEmail(
+        email: event.email,
+        password: event.password,
+      );
+
+      // 3. Handle response (Left=Error, Right=Success)
+      result.fold(
+        (failure) => emit(AuthFailure(failure.message)),
+        (user) => emit(AuthSuccess(user)),
+      );
+    });
+
+    // Handle REGISTER event
+    on<RegisterRequested>((event, emit) async {
+      emit(AuthLoading());
+
+      final result = await authRepository.registerWithEmail(
+        email: event.email,
+        password: event.password,
+        username: event.username,
+      );
+
+      result.fold(
+        (failure) => emit(AuthFailure(failure.message)),
+        (user) => emit(AuthSuccess(user)),
+      );
+    });
+  }
+}
+```
+
+<Warning>
+  Always emit a loading state before async operations. This gives users immediate feedback.
+</Warning>
+
+## Using BLoC in the UI
+
+### Providing the BLoC
+
+Register BLoC with dependency injection and provide it to the widget tree:
+
+```dart lib/injection_container.dart
+// In injection_container.dart
+sl.registerFactory(() => AuthBloc(authRepository: sl()));
+```
+
+```dart lib/main.dart
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => di.sl<AuthBloc>()),
+      ],
+      child: MaterialApp(
+        home: const WelcomePage(),
+      ),
+    );
+  }
+}
+```
+
+### Dispatching Events
+
+Widgets dispatch events using `context.read<BlocType>()`:
+
+```dart lib/features/auth/presentation/pages/login_page.dart
+ElevatedButton(
+  onPressed: () {
+    // Dispatch LoginRequested event
+    context.read<AuthBloc>().add(
+      LoginRequested(
+        email: emailController.text,
+        password: passwordController.text,
+      ),
+    );
+  },
+  child: const Text('Login'),
+)
+```
+
+### Listening to States
+
+Use `BlocListener` for side effects (navigation, snackbars):
+
+```dart
+BlocListener<AuthBloc, AuthState>(
+  listener: (context, state) {
+    if (state is AuthSuccess) {
+      // Navigate to home page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } else if (state is AuthFailure) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(state.message)),
+      );
+    }
+  },
+  child: // ... your UI widgets
+)
+```
+
+### Building UI Based on State
+
+Use `BlocBuilder` to rebuild UI when state changes:
+
+```dart
+BlocBuilder<AuthBloc, AuthState>(
+  builder: (context, state) {
+    if (state is AuthLoading) {
+      return const CircularProgressIndicator();
+    }
+    
+    if (state is AuthFailure) {
+      return Text(
+        'Error: ${state.message}',
+        style: TextStyle(color: Colors.red),
+      );
+    }
+    
+    // Default UI (AuthInitial)
+    return LoginForm();
+  },
+)
+```
+
+### Combined Listener + Builder
+
+Use `BlocConsumer` when you need both:
+
+```dart
+BlocConsumer<AuthBloc, AuthState>(
+  listener: (context, state) {
+    // Handle side effects
+    if (state is AuthSuccess) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    }
+  },
+  builder: (context, state) {
+    // Build UI based on state
+    if (state is AuthLoading) {
+      return const CircularProgressIndicator();
+    }
+    return LoginForm();
+  },
+)
+```
+
+## Creating a New BLoC
+
+Follow these steps to add a new BLoC to your feature:
+
+<Steps>
+  <Step title="Create the folder structure">
+    ```bash
+    lib/features/my_feature/presentation/bloc/
+    ├── my_feature_bloc.dart
+    ├── my_feature_event.dart
+    └── my_feature_state.dart
+    ```
+  </Step>
+  
+  <Step title="Define events">
+    ```dart my_feature_event.dart
+    abstract class MyFeatureEvent extends Equatable {
+      const MyFeatureEvent();
+      @override
+      List<Object> get props => [];
+    }
+    
+    class LoadDataRequested extends MyFeatureEvent {}
+    
+    class SaveDataRequested extends MyFeatureEvent {
+      final String data;
+      const SaveDataRequested(this.data);
+      @override
+      List<Object> get props => [data];
+    }
+    ```
+  </Step>
+  
+  <Step title="Define states">
+    ```dart my_feature_state.dart
+    abstract class MyFeatureState extends Equatable {
+      const MyFeatureState();
+      @override
+      List<Object> get props => [];
+    }
+    
+    class MyFeatureInitial extends MyFeatureState {}
+    class MyFeatureLoading extends MyFeatureState {}
+    class MyFeatureLoaded extends MyFeatureState {
+      final List<Item> items;
+      const MyFeatureLoaded(this.items);
+      @override
+      List<Object> get props => [items];
+    }
+    class MyFeatureError extends MyFeatureState {
+      final String message;
+      const MyFeatureError(this.message);
+      @override
+      List<Object> get props => [message];
+    }
+    ```
+  </Step>
+  
+  <Step title="Implement the BLoC">
+    ```dart my_feature_bloc.dart
+    class MyFeatureBloc extends Bloc<MyFeatureEvent, MyFeatureState> {
+      final MyFeatureRepository repository;
+      
+      MyFeatureBloc({required this.repository}) : super(MyFeatureInitial()) {
+        on<LoadDataRequested>(_onLoadDataRequested);
+        on<SaveDataRequested>(_onSaveDataRequested);
+      }
+      
+      Future<void> _onLoadDataRequested(
+        LoadDataRequested event,
+        Emitter<MyFeatureState> emit,
+      ) async {
+        emit(MyFeatureLoading());
+        
+        final result = await repository.loadData();
+        
+        result.fold(
+          (failure) => emit(MyFeatureError(failure.message)),
+          (items) => emit(MyFeatureLoaded(items)),
+        );
+      }
+      
+      Future<void> _onSaveDataRequested(
+        SaveDataRequested event,
+        Emitter<MyFeatureState> emit,
+      ) async {
+        // Implementation
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Register with dependency injection">
+    ```dart lib/injection_container.dart
+    sl.registerFactory(() => MyFeatureBloc(repository: sl()));
+    ```
+  </Step>
+  
+  <Step title="Provide to widget tree">
+    ```dart
+    BlocProvider(
+      create: (_) => sl<MyFeatureBloc>()..add(LoadDataRequested()),
+      child: MyFeaturePage(),
+    )
+    ```
+  </Step>
+</Steps>
+
+## BLoC Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep BLoCs Simple">
+    BLoCs should orchestrate, not implement. Move complex logic to use cases or domain services:
+    
+    ```dart
+    // ❌ BAD: Complex logic in BLoC
+    on<CalculateScoreEvent>((event, emit) async {
+      final score = event.answers
+        .where((a) => a.isCorrect)
+        .fold(0, (sum, a) => sum + a.points * a.difficulty);
+      emit(ScoreCalculated(score));
+    });
+    
+    // ✅ GOOD: Delegate to use case
+    on<CalculateScoreEvent>((event, emit) async {
+      final result = await calculateScoreUseCase(event.answers);
+      result.fold(
+        (failure) => emit(ScoreError(failure.message)),
+        (score) => emit(ScoreCalculated(score)),
+      );
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Name States Clearly">
+    State names should describe the UI condition:
+    
+    ```dart
+    // ❌ BAD: Vague names
+    class DataState extends State {}
+    class SuccessState extends State {}
+    
+    // ✅ GOOD: Descriptive names
+    class DocumentsLoaded extends HomeState {}
+    class DocumentUploadInProgress extends HomeState {}
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Equatable">
+    Always extend Equatable and define props. This prevents unnecessary rebuilds:
+    
+    ```dart
+    class MyState extends Equatable {
+      final String value;
+      const MyState(this.value);
+      
+      @override
+      List<Object> get props => [value]; // Include all properties!
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle All States">
+    Always handle loading and error states in your UI:
+    
+    ```dart
+    BlocBuilder<MyBloc, MyState>(
+      builder: (context, state) {
+        if (state is MyLoading) {
+          return CircularProgressIndicator();
+        }
+        if (state is MyError) {
+          return ErrorWidget(message: state.message);
+        }
+        if (state is MyLoaded) {
+          return DataWidget(data: state.data);
+        }
+        return SizedBox.shrink(); // Handle initial state
+      },
+    )
+    ```
+  </Accordion>
+  
+  <Accordion title="Use BlocConsumer Wisely">
+    Use `BlocConsumer` when you need both listener and builder. Otherwise, use them separately:
+    
+    ```dart
+    // If you only need side effects
+    BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthSuccess) Navigator.push(...);
+      },
+      child: MyStaticWidget(),
+    )
+    
+    // If you only need to rebuild
+    BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) => MyWidget(state),
+    )
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Testing BLoCs
+
+BLoCs are easy to test because they're pure Dart classes:
+
+```dart test/auth_bloc_test.dart
+import 'package:bloc_test/bloc_test.dart';
+import 'package:dartz/dartz.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:test/test.dart';
+
+class MockAuthRepository extends Mock implements AuthRepository {}
+
+void main() {
+  late AuthBloc authBloc;
+  late MockAuthRepository mockRepository;
+  
+  setUp(() {
+    mockRepository = MockAuthRepository();
+    authBloc = AuthBloc(authRepository: mockRepository);
+  });
+  
+  tearDown(() {
+    authBloc.close();
+  });
+  
+  group('AuthBloc', () {
+    final testUser = UserEntity(
+      id: '1',
+      email: 'test@test.com',
+      username: 'tester',
+    );
+    
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthLoading, AuthSuccess] when login succeeds',
+      build: () {
+        when(() => mockRepository.loginWithEmail(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        )).thenAnswer((_) async => Right(testUser));
+        return authBloc;
+      },
+      act: (bloc) => bloc.add(
+        LoginRequested(
+          email: 'test@test.com',
+          password: 'password',
+        ),
+      ),
+      expect: () => [
+        AuthLoading(),
+        AuthSuccess(testUser),
+      ],
+    );
+    
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthLoading, AuthFailure] when login fails',
+      build: () {
+        when(() => mockRepository.loginWithEmail(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        )).thenAnswer(
+          (_) async => Left(ServerFailure('Invalid credentials')),
+        );
+        return authBloc;
+      },
+      act: (bloc) => bloc.add(
+        LoginRequested(
+          email: 'test@test.com',
+          password: 'wrong',
+        ),
+      ),
+      expect: () => [
+        AuthLoading(),
+        AuthFailure('Invalid credentials'),
+      ],
+    );
+  });
+}
+```
+
+<Tip>
+  Use the `bloc_test` package for easy BLoC testing. It provides `blocTest()` which makes assertions simple.
+</Tip>
+
+## Common Patterns
+
+### Pagination
+
+```dart
+class HomeBloc extends Bloc<HomeEvent, HomeState> {
+  on<LoadMoreDocuments>((event, emit) async {
+    if (state is DocumentsLoaded) {
+      final currentState = state as DocumentsLoaded;
+      
+      final result = await repository.getDocuments(
+        offset: currentState.documents.length,
+      );
+      
+      result.fold(
+        (failure) => emit(DocumentsError(failure.message)),
+        (newDocs) => emit(DocumentsLoaded(
+          documents: [...currentState.documents, ...newDocs],
+          hasMore: newDocs.isNotEmpty,
+        )),
+      );
+    }
+  });
+}
+```
+
+### Debouncing Search
+
+```dart
+class SearchBloc extends Bloc<SearchEvent, SearchState> {
+  SearchBloc() : super(SearchInitial()) {
+    on<SearchQueryChanged>(
+      _onSearchQueryChanged,
+      transformer: debounce(const Duration(milliseconds: 500)),
+    );
+  }
+  
+  Future<void> _onSearchQueryChanged(
+    SearchQueryChanged event,
+    Emitter<SearchState> emit,
+  ) async {
+    if (event.query.isEmpty) {
+      emit(SearchInitial());
+      return;
+    }
+    
+    emit(SearchLoading());
+    
+    final result = await repository.search(event.query);
+    result.fold(
+      (failure) => emit(SearchError(failure.message)),
+      (results) => emit(SearchLoaded(results)),
+    );
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Clean Architecture" icon="layer-group" href="/development/clean-architecture">
+    Understand how BLoC fits into Clean Architecture
+  </Card>
+  
+  <Card title="Supabase Integration" icon="database" href="/development/supabase-integration">
+    Connect your BLoC to real data sources
+  </Card>
+</CardGroup>

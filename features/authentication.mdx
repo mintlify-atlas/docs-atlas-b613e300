@@ -1,0 +1,313 @@
+---
+title: 'Authentication'
+description: 'Secure user registration, login, and profile management powered by Supabase'
+---
+
+# Authentication
+
+StudyQuest provides secure, seamless authentication through Supabase, ensuring your learning progress, worlds, and achievements are safely stored and accessible across devices.
+
+## Account Creation
+
+<Steps>
+  <Step title="Open Register Page">
+    From the welcome screen, tap "Regístrate aquí" (Register here) or navigate to the registration page.
+  </Step>
+  
+  <Step title="Enter Your Details">
+    Provide the following information:
+    - **Username**: Your display name in the app
+    - **Email**: Valid email address for account verification
+    - **Password**: Minimum 6 characters for security
+    - **Confirm Password**: Re-enter password to prevent typos
+  </Step>
+  
+  <Step title="Validation">
+    The form validates your input:
+    - Username must not be empty
+    - Email must contain "@" symbol
+    - Password must be at least 6 characters
+    - Passwords must match
+  </Step>
+  
+  <Step title="Submit Registration">
+    Tap "REGISTRARME" (Register Me). A loading indicator appears while your account is created.
+  </Step>
+  
+  <Step title="Automatic Login">
+    Upon successful registration, you're automatically logged in and redirected to the home page.
+  </Step>
+</Steps>
+
+<Note>
+  Email verification is currently not required, but may be added in future updates for enhanced security.
+</Note>
+
+## Logging In
+
+<Steps>
+  <Step title="Access Login Page">
+    From the welcome screen, tap the login button or navigate directly if you already have an account.
+  </Step>
+  
+  <Step title="Enter Credentials">
+    Provide your registered email and password in the form fields.
+  </Step>
+  
+  <Step title="Form Validation">
+    Input is validated before submission:
+    - Email format checked (must contain "@")
+    - Password minimum length verified (6+ characters)
+  </Step>
+  
+  <Step title="Authenticate">
+    Tap "INICIAR SESIÓN" (Log In). Authentication is processed through Supabase.
+  </Step>
+  
+  <Step title="Success Redirect">
+    Upon successful login, you're immediately taken to your home page with all your worlds and progress loaded.
+  </Step>
+</Steps>
+
+### Login Error Handling
+
+If login fails, you'll see a red floating snackbar with the specific error:
+
+- **Invalid Credentials**: Email/password combination not found
+- **Network Error**: Connection issue with authentication server
+- **Account Locked**: Too many failed login attempts (rate limiting)
+
+<Tip>
+  Error messages are displayed as dismissible snackbars at the bottom of the screen, providing clear feedback without blocking your view.
+</Tip>
+
+## User Interface
+
+### Login Page Design
+
+**Header Section**:
+- Large school icon (🎓)
+- "StudyQuest" title with bold, dark blue styling
+- Tagline: "Tu compañero de estudio inteligente"
+
+**Form Section**:
+- Email input with envelope icon
+- Password input with lock icon (obscured text)
+- Clear, accessible input fields with validation
+- Prominent login button
+- Link to registration page
+
+**Loading State**:
+- Centered teal circular progress indicator
+- Replaces form during authentication processing
+
+### Register Page Design
+
+**Header Section**:
+- "Crear Cuenta" (Create Account) title
+- Motivational subtitle: "Únete y empieza tu racha de estudio"
+
+**Form Section**:
+- Username input with person icon
+- Email input with envelope icon
+- Password input with lock icon
+- Confirm password input with lock-reset icon
+- Prominent registration button
+- Link to login page for existing users
+
+**Loading State**:
+- Teal progress indicator during account creation
+
+## Authentication Flow
+
+The authentication system uses Flutter BLoC pattern for state management:
+
+<Tabs>
+  <Tab title="Initial State">
+    When you open the app, the AuthBloc checks for an existing session. If found, you're automatically logged in. If not, you see the welcome/login screen.
+  </Tab>
+  
+  <Tab title="Loading State">
+    During login or registration, the AuthBloc enters "AuthLoading" state, triggering the progress indicator UI.
+  </Tab>
+  
+  <Tab title="Success State">
+    Successful authentication transitions to "AuthSuccess" state, which:
+    - Stores user session in Supabase
+    - Loads user profile data
+    - Navigates to home page
+    - Removes login screens from navigation stack
+  </Tab>
+  
+  <Tab title="Failure State">
+    Authentication errors trigger "AuthFailure" state with an error message, displaying the red snackbar notification.
+  </Tab>
+</Tabs>
+
+## Profile Management
+
+Once authenticated, your profile contains:
+
+<CardGroup cols={2}>
+  <Card title="User ID" icon="fingerprint">
+    Unique identifier linking all your data (worlds, levels, progress).
+  </Card>
+  
+  <Card title="Username" icon="user">
+    Display name shown in the app (e.g., on profile page, leaderboards).
+  </Card>
+  
+  <Card title="Total XP" icon="bolt">
+    Cumulative experience points earned across all completed levels.
+  </Card>
+  
+  <Card title="Current Streak" icon="fire">
+    Consecutive days you've studied (tracked for gamification).
+  </Card>
+  
+  <Card title="Avatar URL" icon="image">
+    Optional profile picture (currently not customizable in UI).
+  </Card>
+  
+  <Card title="Email" icon="envelope">
+    Account email for authentication and potential notifications.
+  </Card>
+</CardGroup>
+
+## Security Features
+
+<Accordion title="Password Security">
+  - Minimum 6-character length requirement
+  - Passwords are hashed and never stored in plaintext
+  - Supabase handles all encryption and secure storage
+  - Passwords are obscured (hidden) during input
+</Accordion>
+
+<Accordion title="Session Management">
+  - Sessions use secure JWT tokens
+  - Tokens automatically refresh to maintain login state
+  - Logout immediately invalidates session tokens
+  - Sessions persist across app restarts (until logout)
+</Accordion>
+
+<Accordion title="Data Privacy">
+  - User data stored in isolated database rows (row-level security)
+  - Only authenticated users can access their own data
+  - No user data shared between accounts
+  - Supabase complies with GDPR and privacy standards
+</Accordion>
+
+<Accordion title="Account Recovery">
+  Password reset functionality is planned for future releases. Currently, contact support if you forget your password.
+</Accordion>
+
+## Logout
+
+To log out of your account:
+
+1. Navigate to your profile or settings page
+2. Tap the logout button
+3. Confirmation dialog may appear (depending on implementation)
+4. Session is terminated immediately
+5. You're redirected to the welcome/login screen
+6. Local cache is cleared (progress synced to server first)
+
+<Warning>
+  Always log out on shared devices to prevent unauthorized access to your learning data.
+</Warning>
+
+## Cross-Device Sync
+
+Your authenticated account enables seamless sync across devices:
+
+- **Worlds**: All uploaded PDFs and generated content
+- **Progress**: Level completion status and XP
+- **Streak**: Daily study streak tracking
+- **Settings**: Preferences and configurations
+
+<Note>
+  Sync happens automatically in real-time. Changes on one device appear immediately on others after refresh.
+</Note>
+
+## Profile Data Structure
+
+The ProfileEntity contains:
+
+```dart
+ProfileEntity {
+  id: String              // Supabase user UUID
+  username: String?       // Display name
+  avatarUrl: String?      // Profile picture URL
+  totalXp: int            // Cumulative XP earned
+  currentStreak: int      // Consecutive study days
+}
+```
+
+## Authentication Repository
+
+The AuthRepository provides these methods:
+
+- `loginWithEmail()`: Authenticate with email/password
+- `registerWithEmail()`: Create new account with email/password/username
+- `logout()`: Terminate current session
+- `getCurrentProfile()`: Fetch current user's profile data
+- `addXp(amount)`: Increment user's total XP
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Strong Passwords" icon="shield">
+    Use unique passwords with a mix of letters, numbers, and symbols (even though only 6+ chars required).
+  </Card>
+  
+  <Card title="Secure Email" icon="lock">
+    Use a secure email account as it's your recovery method.
+  </Card>
+  
+  <Card title="Regular Logouts" icon="right-from-bracket">
+    Log out after study sessions on shared or public devices.
+  </Card>
+  
+  <Card title="Monitor Activity" icon="eye">
+    Check your XP and streak regularly to detect unauthorized access.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<Accordion title="Can't create account">
+  **Possible causes**:
+  - Email already registered (try logging in instead)
+  - Weak password (must be 6+ characters)
+  - Network connectivity issues
+  - Passwords don't match
+  
+  **Solution**: Check error message in red snackbar for specific guidance.
+</Accordion>
+
+<Accordion title="Forgotten password">
+  Password reset is not yet implemented in the UI. Contact support or create a new account as a temporary workaround.
+</Accordion>
+
+<Accordion title="Login session expires">
+  Sessions should persist indefinitely until logout. If you're unexpectedly logged out, check your network connection and re-authenticate.
+</Accordion>
+
+<Accordion title="Profile data not loading">
+  Ensure you have an active internet connection. Profile data is fetched from Supabase on login and requires connectivity.
+</Accordion>
+
+## Future Enhancements
+
+- **Email Verification**: Confirm email addresses for added security
+- **Password Reset**: Self-service password recovery via email
+- **Social Login**: OAuth with Google, Apple, or other providers
+- **Two-Factor Authentication**: Optional 2FA for enhanced security
+- **Profile Customization**: Upload custom avatars and edit usernames
+- **Account Deletion**: Self-service account deletion option
+
+## Related Features
+
+- **[Gamification](/features/gamification)**: How your profile tracks XP and streaks
+- **[Notifications](/features/notifications)**: Study reminders linked to your account
+- **Profile Page**: View your stats, achievements, and learning history (in app)

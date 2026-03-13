@@ -1,80 +1,375 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get StudyQuest running and upload your first PDF in 10 minutes
 ---
 
-## Get started in three steps
+## Prerequisites
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+Before you begin, ensure you have:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Flutter SDK" icon="mobile">
+    Version 3.10.7 or higher
+    
+    [Download Flutter](https://flutter.dev/docs/get-started/install)
+  </Card>
+  
+  <Card title="Supabase Account" icon="database">
+    Free tier is sufficient
+    
+    [Sign up for Supabase](https://supabase.com)
+  </Card>
+  
+  <Card title="Google Gemini API Key" icon="key">
+    Required for AI processing
+    
+    [Get API Key](https://makersuite.google.com/app/apikey)
+  </Card>
+  
+  <Card title="Development Tools" icon="code">
+    Android Studio or Xcode
+    
+    For building mobile apps
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  This quickstart assumes you're familiar with basic Flutter development. If you're new to Flutter, check out the [official Flutter documentation](https://flutter.dev/docs) first.
 </Note>
+
+## Setup Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the StudyQuest repository to your local machine:
+    
+    ```bash
+    git clone https://github.com/your-org/study_quest.git
+    cd study_quest
+    ```
+  </Step>
+  
+  <Step title="Install Flutter Dependencies">
+    Install all required Flutter packages:
+    
+    ```bash
+    flutter pub get
+    ```
+    
+    This will install all dependencies defined in `pubspec.yaml`:
+    
+    ```yaml pubspec.yaml
+    dependencies:
+      flutter_bloc: ^8.1.3      # State management
+      supabase_flutter: ^2.8.3  # Backend
+      get_it: ^7.6.0            # Dependency injection
+      dartz: ^0.10.1            # Functional error handling
+      file_picker: ^8.0.0       # PDF file selection
+    ```
+  </Step>
+  
+  <Step title="Create Supabase Project">
+    1. Go to [supabase.com](https://supabase.com) and create a new project
+    2. Note your project URL and anon key from **Settings > API**
+    3. Create a storage bucket named `pdfs`:
+       - Go to **Storage** in the Supabase dashboard
+       - Click **Create bucket**
+       - Name it `pdfs` and make it public
+    
+    <Warning>
+      Keep your Supabase keys secure. Never commit them to version control.
+    </Warning>
+  </Step>
+  
+  <Step title="Set Up Database Tables">
+    Run this SQL in the Supabase SQL editor (**Database > SQL Editor**):
+    
+    ```sql
+    -- Documents table
+    CREATE TABLE documents (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      user_id UUID REFERENCES auth.users NOT NULL,
+      title TEXT NOT NULL,
+      file_url TEXT NOT NULL,
+      summary_text TEXT,
+      status TEXT DEFAULT 'processing',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Topics table
+    CREATE TABLE topics (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      document_id UUID REFERENCES documents ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      order_index INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Flashcards table
+    CREATE TABLE flashcards (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      document_id UUID REFERENCES documents ON DELETE CASCADE,
+      topic_id UUID REFERENCES topics ON DELETE CASCADE,
+      front_text TEXT NOT NULL,
+      back_text TEXT NOT NULL,
+      mastery_level INTEGER DEFAULT 1,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Quizzes table
+    CREATE TABLE quizzes (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      document_id UUID REFERENCES documents ON DELETE CASCADE,
+      topic_id UUID REFERENCES topics ON DELETE CASCADE,
+      question_text TEXT NOT NULL,
+      options JSONB NOT NULL,
+      correct_answer_index INTEGER NOT NULL,
+      explanation TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Enable Row Level Security
+    ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE topics ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE flashcards ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE quizzes ENABLE ROW LEVEL SECURITY;
+
+    -- Policies for documents
+    CREATE POLICY "Users can view own documents" ON documents
+      FOR SELECT USING (auth.uid() = user_id);
+    
+    CREATE POLICY "Users can insert own documents" ON documents
+      FOR INSERT WITH CHECK (auth.uid() = user_id);
+    ```
+  </Step>
+  
+  <Step title="Configure App Secrets">
+    Create a file `lib/core/secrets.dart` with your credentials:
+    
+    ```dart lib/core/secrets.dart
+    class Secrets {
+      // Supabase Configuration
+      static const String supabaseUrl = 'https://your-project.supabase.co';
+      static const String supabaseAnonKey = 'your-anon-key-here';
+    }
+    ```
+    
+    <Warning>
+      Add `lib/core/secrets.dart` to your `.gitignore` to prevent committing secrets:
+      
+      ```bash .gitignore
+      # Secrets
+      lib/core/secrets.dart
+      ```
+    </Warning>
+  </Step>
+  
+  <Step title="Set Up Python Worker">
+    The backend worker processes PDFs using AI. Set it up:
+    
+    ```bash
+    cd backend
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    pip install -r requirements.txt
+    ```
+    
+    Create `backend/.env` with your credentials:
+    
+    ```bash backend/.env
+    SUPABASE_URL=https://your-project.supabase.co
+    SUPABASE_KEY=your-service-role-key
+    GEMINI_API_KEY=your-gemini-api-key
+    ```
+    
+    <Note>
+      Use the **service_role** key from Supabase (Settings > API) for the backend worker, not the anon key.
+    </Note>
+  </Step>
+  
+  <Step title="Run the App">
+    Start the Flutter app on your device or emulator:
+    
+    <CodeGroup>
+    ```bash iOS
+    flutter run -d ios
+    ```
+    
+    ```bash Android
+    flutter run -d android
+    ```
+    
+    ```bash Emulator
+    # Start any available device
+    flutter run
+    ```
+    </CodeGroup>
+    
+    The app will initialize Supabase and dependency injection on startup:
+    
+    ```dart lib/main.dart
+    Future<void> main() async {
+      WidgetsFlutterBinding.ensureInitialized();
+
+      await NotificationService.init();
+      
+      // 1. Initialize Supabase
+      await Supabase.initialize(
+        url: Secrets.supabaseUrl,
+        anonKey: Secrets.supabaseAnonKey,
+      );
+
+      // 2. Initialize Dependency Injection
+      await di.init();
+
+      runApp(const MyApp());
+    }
+    ```
+  </Step>
+  
+  <Step title="Start the AI Worker">
+    In a separate terminal, start the Python worker to process PDFs:
+    
+    ```bash
+    cd backend
+    source venv/bin/activate
+    python worker.py
+    ```
+    
+    You should see:
+    
+    ```
+    🤖 StudyQuest AI Worker (V4 - Auto-Nombramiento) iniciado...
+    Esperando documentos en la cola...
+    ```
+    
+    <Tip>
+      For production, deploy the worker to a cloud service like Railway, Render, or Heroku so it runs continuously.
+    </Tip>
+  </Step>
+  
+  <Step title="Upload Your First PDF">
+    Now test the complete flow:
+    
+    1. **Create an account** or sign in
+    2. **Tap the upload button** (usually a '+' or 'Upload' button)
+    3. **Select a PDF** from your device (try a study guide or textbook chapter)
+    4. **Wait for processing** - the document status will show "processing"
+    5. **Check the worker logs** - you'll see the AI analyzing the PDF:
+    
+    ```
+    🚀 Procesando documento: example.pdf (abc-123)
+       ⬇️ Descargando PDF completo...
+       📖 Leyendo PDF...
+       📝 Generando título corto y resumen global...
+       ✂️ Documento dividido en 2 bloques lógicos.
+       🧠 IA Analizando bloque 1...
+       📑 IA encontró un total de 3 temas en todo el PDF. Guardando en DB...
+    🎉 ¡Proceso completado con éxito! El mundo está listo para jugarse.
+    ```
+    
+    6. **Study your material** - once processing completes, tap the document to access flashcards and quizzes
+  </Step>
+</Steps>
+
+## Verify Everything Works
+
+To confirm your setup is correct:
+
+<Steps>
+  <Step title="Check Document Upload">
+    The document should appear in your documents list with status "processing", then change to "ready" after the worker finishes.
+  </Step>
+  
+  <Step title="Verify AI Processing">
+    In the worker logs, you should see:
+    - PDF download confirmation
+    - AI analysis of text chunks
+    - Topics, flashcards, and quizzes being saved
+    - Success message when complete
+  </Step>
+  
+  <Step title="Test Flashcards">
+    Open the processed document and:
+    - View generated flashcards
+    - Flip cards to see answers
+    - Mark cards as mastered
+  </Step>
+  
+  <Step title="Take a Quiz">
+    Navigate to quizzes and:
+    - Answer multiple-choice questions
+    - View explanations for correct answers
+    - See your score
+  </Step>
+</Steps>
+
+<Note>
+  The AI processing time depends on the PDF size. A typical 20-page document takes 1-3 minutes to process.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="App crashes on startup">
+    **Cause**: Missing or invalid Supabase credentials
+    
+    **Solution**:
+    - Verify `lib/core/secrets.dart` exists and has correct values
+    - Check that your Supabase project URL and anon key are correct
+    - Ensure you ran `flutter pub get` to install dependencies
+  </Accordion>
+  
+  <Accordion title="Worker not processing documents">
+    **Cause**: Database connection issues or missing environment variables
+    
+    **Solution**:
+    - Check `backend/.env` has all required variables:
+      - `SUPABASE_URL`
+      - `SUPABASE_KEY` (use service_role key, not anon key)
+      - `GEMINI_API_KEY`
+    - Verify the worker is running: `python worker.py`
+    - Check worker logs for error messages
+  </Accordion>
+  
+  <Accordion title="PDF upload fails">
+    **Cause**: Storage bucket not configured or permission issues
+    
+    **Solution**:
+    - Create a storage bucket named `pdfs` in Supabase dashboard
+    - Make the bucket public or set appropriate policies
+    - Check Row Level Security policies on the documents table
+  </Accordion>
+  
+  <Accordion title="AI generates poor quality content">
+    **Cause**: PDF text extraction issues or unclear source material
+    
+    **Solution**:
+    - Ensure PDFs are text-based, not scanned images
+    - Try PDFs with clear section headings and structured content
+    - Adjust the AI prompt in `backend/worker.py` line 49-86 for better results
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you have StudyQuest running, explore these topics:
+
+<CardGroup cols={2}>
+  <Card title="Configuration Guide" icon="gear" href="/setup/configuration">
+    Learn about advanced configuration options and environment variables
+  </Card>
+  
+  <Card title="Supabase Deep Dive" icon="database" href="/setup/supabase">
+    Understand the database schema, storage setup, and security policies
+  </Card>
+  
+  <Card title="Architecture" icon="diagram-project" href="/development/architecture">
+    Explore the clean architecture structure and BLoC pattern
+  </Card>
+  
+  <Card title="AI Worker" icon="robot" href="/development/ai-worker">
+    Learn about the Python worker that processes PDFs with AI
+  </Card>
+</CardGroup>

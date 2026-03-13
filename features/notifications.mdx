@@ -1,0 +1,363 @@
+---
+title: 'Notifications'
+description: 'Stay on track with smart study reminders and streak alerts'
+---
+
+# Notifications
+
+StudyQuest uses local push notifications to help you maintain daily study habits and protect your learning streak. Timely reminders ensure you never miss a day of progress.
+
+## Notification System
+
+StudyQuest implements **local notifications** (not cloud-based) using Flutter Local Notifications with timezone support. This means:
+
+- Notifications scheduled directly on your device
+- No internet connection required for delivery
+- Privacy-friendly (no data sent to external servers)
+- Precise timing based on your local timezone
+
+<Note>
+  Local notifications work offline but require the app to be installed. Uninstalling the app removes all scheduled notifications.
+</Note>
+
+## Streak Reminder Notifications
+
+The primary notification type is the **daily streak reminder**, designed to prevent streak breaks.
+
+### How Streak Reminders Work
+
+<Steps>
+  <Step title="Automatic Scheduling">
+    When you first launch StudyQuest or complete a level, the app schedules a daily reminder notification.
+  </Step>
+  
+  <Step title="Notification Timing">
+    By default, reminders are scheduled for **8:00 PM (20:00)** in your local timezone.
+    
+    _Test Mode: Currently set to 10 seconds after app launch for development testing._
+  </Step>
+  
+  <Step title="Daily Recurrence">
+    The notification recurs every 24 hours at the same time, ensuring consistent daily reminders.
+  </Step>
+  
+  <Step title="Notification Content">
+    - **Title**: "¡Tu racha está en peligro! 🔥" (Your streak is in danger!)
+    - **Body**: "Aún no has estudiado hoy. Entra a StudyQuest y completa una lección rápida." (You haven't studied today. Open StudyQuest and complete a quick lesson.)
+  </Step>
+  
+  <Step title="Action on Tap">
+    Tapping the notification opens StudyQuest directly to your home page, ready to study.
+  </Step>
+</Steps>
+
+### Notification Behavior
+
+<Tabs>
+  <Tab title="Android">
+    **Notification Channel**: "Recordatorios de Racha" (Streak Reminders)
+    
+    **Properties**:
+    - Importance: Max (appears as heads-up notification)
+    - Priority: High (ensures visibility)
+    - Sound: Default notification sound
+    - Vibration: Standard pattern
+    - LED Color: Teal (#009688, matching app theme)
+    - Icon: App launcher icon
+    - Exact Timing: Uses `exactAllowWhileIdle` mode to bypass battery optimization
+    
+    **Permissions**:
+    - `POST_NOTIFICATIONS` (Android 13+)
+    - `SCHEDULE_EXACT_ALARM` (for precise 8 PM timing)
+  </Tab>
+  
+  <Tab title="iOS">
+    **Properties**:
+    - Alert: Shown as banner and in notification center
+    - Sound: Default iOS notification sound
+    - Badge: App icon badge may increment
+    
+    **Permissions**:
+    - Alert permission requested on first launch
+    - Sound permission included
+    - Badge permission included
+  </Tab>
+</Tabs>
+
+## Notification Schedule
+
+### Current Implementation
+
+```dart
+// Scheduled time (production)
+var scheduledDate = tz.TZDateTime(
+  tz.local, 
+  now.year, 
+  now.month, 
+  now.day, 
+  20  // 8:00 PM
+);
+
+// If already past 8 PM today, schedule for tomorrow
+if (scheduledDate.isBefore(now)) {
+  scheduledDate = scheduledDate.add(Duration(days: 1));
+}
+
+// Notification scheduled with exact timing
+await notificationsPlugin.zonedSchedule(
+  0,  // Notification ID
+  '¡Tu racha está en peligro! 🔥',
+  'Aún no has estudiado hoy...',
+  scheduledDate,
+  platformSpecifics,
+  androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle
+);
+```
+
+### Timezone Handling
+
+Notifications respect your local timezone:
+
+- **Timezone Detection**: Automatically uses device timezone
+- **Current Setting**: America/Mexico_City (UTC-6/-5)
+- **DST Support**: Automatically adjusts for daylight saving time
+- **Travel-Friendly**: Notifications adjust if you change timezones
+
+<Tip>
+  If you travel across timezones, notifications will continue firing at 8 PM in the new timezone. Restart the app to reschedule for accurate local timing.
+</Tip>
+
+## Permission Handling
+
+### Android Permissions
+
+On Android 13+ (API level 33+), notification permissions are requested automatically:
+
+<Steps>
+  <Step title="Initial Request">
+    On first app launch, a system dialog asks: "Allow StudyQuest to send you notifications?"
+  </Step>
+  
+  <Step title="User Choice">
+    - **Allow**: Notifications enabled immediately
+    - **Deny**: Notifications won't appear (can be enabled later in system settings)
+  </Step>
+  
+  <Step title="Exact Alarm Permission">
+    A second permission for exact alarms may be requested to ensure precise 8 PM timing.
+  </Step>
+</Steps>
+
+### iOS Permissions
+
+On iOS, permissions are requested during `NotificationService.init()`:
+
+- Alert permission (show banners)
+- Sound permission (play notification sounds)
+- Badge permission (show app icon badge)
+
+Users can grant or deny. Denied permissions can be changed in iOS Settings > StudyQuest > Notifications.
+
+<Warning>
+  If notifications aren't appearing, check your device's notification settings for StudyQuest. Ensure notifications are enabled and not silenced.
+</Warning>
+
+## Notification Customization
+
+### Current Customization
+
+Currently, notifications have fixed settings:
+
+- **Time**: 8:00 PM daily
+- **Message**: Streak reminder content (Spanish)
+- **Sound**: Default system sound
+- **Frequency**: Daily (every 24 hours)
+
+### Future Customization (Planned)
+
+<CardGroup cols={2}>
+  <Card title="Custom Timing" icon="clock">
+    Choose your preferred reminder time (morning, afternoon, evening).
+  </Card>
+  
+  <Card title="Frequency Control" icon="sliders">
+    Adjust reminder frequency (daily, every other day, weekdays only).
+  </Card>
+  
+  <Card title="Notification Types" icon="list">
+    Enable/disable specific notification categories (streak, achievements, world completion).
+  </Card>
+  
+  <Card title="Sound Selection" icon="volume">
+    Choose notification sound or use silent mode.
+  </Card>
+</CardGroup>
+
+## Notification Management
+
+### Canceling Notifications
+
+Currently, notifications are canceled and rescheduled each time `scheduleStreakReminder()` is called:
+
+```dart
+await _notificationsPlugin.cancelAll();
+// Then reschedule with new timing
+```
+
+This ensures only one active reminder exists, preventing notification spam.
+
+### Disabling Notifications
+
+To disable notifications:
+
+1. **Via System Settings** (recommended):
+   - Android: Settings > Apps > StudyQuest > Notifications > Toggle off
+   - iOS: Settings > StudyQuest > Notifications > Toggle off
+
+2. **Via App** (future feature):
+   - In-app settings to disable streak reminders
+   - Preserves ability to re-enable without system settings
+
+<Note>
+  There's currently no in-app toggle to disable notifications. This feature is planned for future releases.
+</Note>
+
+## Notification Best Practices
+
+<Accordion title="When should I expect notifications?">
+  You'll receive your first streak reminder at 8:00 PM the day after you complete a level. Subsequent reminders occur daily at 8 PM as long as the app is installed.
+</Accordion>
+
+<Accordion title="What if I study before the notification?">
+  The notification will still fire at 8 PM regardless of whether you've studied. It's a consistent daily reminder, not conditional on current day activity.
+  
+  _Future updates may add smart detection to skip notifications on days you've already studied._
+</Accordion>
+
+<Accordion title="Can I get notifications for other events?">
+  Currently, only streak reminders are implemented. Future versions may add:
+  - World processing completion alerts
+  - Achievement unlock notifications
+  - Weekly progress summaries
+  - Friend activity notifications (if social features added)
+</Accordion>
+
+<Accordion title="Why 8:00 PM?">
+  8:00 PM is chosen as a reasonable evening time when most people can spare 5-10 minutes to study before bed. This timing helps end your day with a productive learning session.
+</Accordion>
+
+## Technical Implementation
+
+### NotificationService Structure
+
+```dart
+class NotificationService {
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin;
+  
+  // Initialize with timezone and platform settings
+  static Future<void> init() async {
+    // Timezone setup
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('America/Mexico_City'));
+    
+    // Platform-specific settings
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(...);
+    
+    // Request permissions
+    await _notificationsPlugin.initialize(...);
+    await requestPermissions();
+  }
+  
+  // Schedule daily streak reminder
+  static Future<void> scheduleStreakReminder() async {
+    await _notificationsPlugin.cancelAll();  // Clear old reminders
+    
+    // Calculate next 8 PM
+    final scheduledDate = calculateNext8PM();
+    
+    // Schedule with exact timing
+    await _notificationsPlugin.zonedSchedule(
+      0,
+      title,
+      body,
+      scheduledDate,
+      platformSpecifics,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle
+    );
+  }
+}
+```
+
+### Calling the Service
+
+Notifications are initialized at app startup:
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize notification service
+  await NotificationService.init();
+  await NotificationService.scheduleStreakReminder();
+  
+  runApp(MyApp());
+}
+```
+
+## Battery Optimization
+
+Android's battery optimization can interfere with exact notification timing:
+
+### AndroidScheduleMode.exactAllowWhileIdle
+
+This mode ensures notifications fire even when the device is in low-power mode:
+
+- Bypasses Doze mode restrictions
+- Delivers at exact scheduled time (not deferred)
+- Requires `SCHEDULE_EXACT_ALARM` permission
+
+<Warning>
+  Some Android manufacturers (Xiaomi, Huawei, OnePlus) have aggressive battery optimization. Users may need to whitelist StudyQuest in battery settings for reliable notifications.
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Notifications not appearing">
+  **Solutions**:
+  1. Check app notification permissions in system settings
+  2. Ensure "Do Not Disturb" mode isn't blocking notifications
+  3. Whitelist StudyQuest in battery optimization settings
+  4. Verify the app is installed (uninstalling removes scheduled notifications)
+  5. Restart the app to reschedule notifications
+</Accordion>
+
+<Accordion title="Notifications appear at wrong time">
+  **Causes**:
+  - Device timezone set incorrectly
+  - Recent timezone change (travel) without app restart
+  
+  **Solution**: Verify device timezone and restart StudyQuest to reschedule.
+</Accordion>
+
+<Accordion title="Multiple duplicate notifications">
+  **Cause**: Notification scheduling called multiple times without proper cancellation.
+  
+  **Solution**: This shouldn't happen in production. If it does, restart the app. The `cancelAll()` call should prevent duplicates.
+</Accordion>
+
+<Accordion title="No permission dialog appeared">
+  **Android**: Check if you previously denied permissions. Go to Settings > Apps > StudyQuest > Permissions > Notifications and enable manually.
+  
+  **iOS**: Permissions may have been denied during initial launch. Go to Settings > StudyQuest > Notifications and enable.
+</Accordion>
+
+## Related Features
+
+- **[Gamification](/features/gamification)**: Understanding streaks and why notifications protect them
+- **[Authentication](/features/authentication)**: How streak data is tied to your account
+- **Settings Page** (in app): Future location for notification preferences
+
+<Tip>
+  Treat notification reminders as helpful nudges, not obligations. If you miss a day, simply start your streak again without guilt. Consistent learning matters more than perfect streaks.
+</Tip>

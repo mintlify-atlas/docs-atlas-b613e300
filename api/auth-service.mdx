@@ -1,0 +1,233 @@
+---
+title: "Auth Service"
+description: "Authentication repository for user login, registration, and profile management"
+---
+
+## Overview
+
+The `AuthRepositoryImpl` handles all authentication operations including login, registration, logout, XP management, and profile retrieval. It uses the `Either` type from the `dartz` package to handle success and failure cases.
+
+## Methods
+
+### loginWithEmail
+
+Authenticates a user with email and password.
+
+<ParamField path="email" type="String" required>
+  User's email address
+</ParamField>
+
+<ParamField path="password" type="String" required>
+  User's password
+</ParamField>
+
+<ResponseField name="return" type="Future<Either<Failure, UserEntity>>">
+  Returns `Right(UserEntity)` on success or `Left(Failure)` on error
+</ResponseField>
+
+```dart
+Future<Either<Failure, UserEntity>> loginWithEmail({
+  required String email,
+  required String password,
+}) async {
+  try {
+    final user = await remoteDataSource.loginWithEmail(email, password);
+    return Right(user);
+  } on Failure catch (e) {
+    return Left(e);
+  } catch (e) {
+    return const Left(ServerFailure('Error inesperado en el repositorio'));
+  }
+}
+```
+
+**Usage Example:**
+
+```dart
+final result = await authRepository.loginWithEmail(
+  email: 'user@example.com',
+  password: 'securePassword123',
+);
+
+result.fold(
+  (failure) => print('Login failed: ${failure.message}'),
+  (user) => print('Welcome ${user.username}!'),
+);
+```
+
+---
+
+### registerWithEmail
+
+Registers a new user account with email, password, and username.
+
+<ParamField path="email" type="String" required>
+  New user's email address
+</ParamField>
+
+<ParamField path="password" type="String" required>
+  New user's password
+</ParamField>
+
+<ParamField path="username" type="String" required>
+  Display name for the new user
+</ParamField>
+
+<ResponseField name="return" type="Future<Either<Failure, UserEntity>>">
+  Returns `Right(UserEntity)` on success or `Left(Failure)` on error
+</ResponseField>
+
+```dart
+Future<Either<Failure, UserEntity>> registerWithEmail({
+  required String email,
+  required String password,
+  required String username,
+}) async {
+  try {
+    final user = await remoteDataSource.registerWithEmail(email, password, username);
+    return Right(user);
+  } on Failure catch (e) {
+    return Left(e);
+  }
+}
+```
+
+**Usage Example:**
+
+```dart
+final result = await authRepository.registerWithEmail(
+  email: 'newuser@example.com',
+  password: 'securePassword123',
+  username: 'StudyMaster',
+);
+
+result.fold(
+  (failure) => print('Registration failed: ${failure.message}'),
+  (user) => print('Account created for ${user.username}!'),
+);
+```
+
+---
+
+### logout
+
+Logs out the current user and clears the session.
+
+<ResponseField name="return" type="Future<void>">
+  Completes when logout is finished. Does not throw errors.
+</ResponseField>
+
+```dart
+Future<void> logout() async {
+  try {
+    await remoteDataSource.logout();
+  } catch (e) {
+    // Logout failures are silently handled
+  }
+}
+```
+
+**Usage Example:**
+
+```dart
+await authRepository.logout();
+Navigator.pushReplacementNamed(context, '/login');
+```
+
+---
+
+### addXp
+
+Adds experience points to the current user's profile.
+
+<ParamField path="amount" type="int" required>
+  Number of XP points to add (can be any positive integer)
+</ParamField>
+
+<ResponseField name="return" type="Future<void>">
+  Completes when XP is added. Errors are logged but do not interrupt the flow.
+</ResponseField>
+
+```dart
+Future<void> addXp(int amount) async {
+  try {
+    await remoteDataSource.addXp(amount);
+  } catch (e) {
+    print("Error sumando XP: $e");
+    // Errors don't interrupt the UI flow
+  }
+}
+```
+
+**Usage Example:**
+
+```dart
+// Award XP after completing a level
+await authRepository.addXp(50);
+showDialog(
+  context: context,
+  builder: (context) => AlertDialog(
+    title: Text('Level Complete!'),
+    content: Text('You earned 50 XP!'),
+  ),
+);
+```
+
+---
+
+### getCurrentProfile
+
+Retrieves the current user's complete profile including XP and streak data.
+
+<ResponseField name="return" type="Future<Either<Failure, ProfileEntity>>">
+  Returns `Right(ProfileEntity)` on success or `Left(Failure)` on error
+</ResponseField>
+
+```dart
+Future<Either<Failure, ProfileEntity>> getCurrentProfile() async {
+  try {
+    final data = await remoteDataSource.getCurrentProfile();
+    return Right(ProfileEntity.fromMap(data));
+  } catch (e) {
+    return Left(ServerFailure(e.toString()));
+  }
+}
+```
+
+**Usage Example:**
+
+```dart
+final result = await authRepository.getCurrentProfile();
+
+result.fold(
+  (failure) => print('Failed to load profile'),
+  (profile) {
+    print('Total XP: ${profile.totalXp}');
+    print('Current Streak: ${profile.currentStreak} days');
+  },
+);
+```
+
+---
+
+## Error Handling
+
+All authentication methods use the `Either<Failure, T>` pattern:
+
+- **Left(Failure)**: Operation failed with error details
+- **Right(T)**: Operation succeeded with result
+
+Use the `.fold()` method to handle both cases:
+
+```dart
+result.fold(
+  (failure) {
+    // Handle error case
+    print('Error: ${failure.message}');
+  },
+  (data) {
+    // Handle success case
+    print('Success: $data');
+  },
+);
+```

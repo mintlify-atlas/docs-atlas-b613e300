@@ -1,0 +1,245 @@
+---
+title: 'Quizzes'
+description: 'Test your knowledge with interactive multiple-choice quizzes and instant feedback'
+---
+
+# Quizzes
+
+Quizzes in StudyQuest provide rigorous knowledge testing through carefully crafted multiple-choice questions. Unlike flashcards that test recall, quizzes assess your deeper understanding with credible distractors and detailed explanations.
+
+## How Quizzes Work
+
+<Steps>
+  <Step title="Enter a Quiz Level">
+    Select a quiz-type level from your level map (indicated by the quiz icon). Each quiz contains 2-4 questions about a specific topic.
+  </Step>
+  
+  <Step title="Read the Question">
+    Questions are displayed prominently with a speaker icon. Tap the speaker to hear the question read aloud.
+  </Step>
+  
+  <Step title="Choose Your Answer">
+    Four options are presented (A, B, C, D). Tap your chosen answer. You have 3 lives (hearts) - each wrong answer costs one life.
+  </Step>
+  
+  <Step title="Receive Instant Feedback">
+    - **Correct**: Green highlight, success sound, and celebratory avatar animation
+    - **Incorrect**: Red highlight on your choice, green highlight on correct answer, wrong sound effect
+  </Step>
+  
+  <Step title="Read the Explanation">
+    A detailed explanation appears explaining why the correct answer is right. This reinforces learning even when you answer incorrectly.
+  </Step>
+  
+  <Step title="Continue or Game Over">
+    - **With lives remaining**: Tap "Siguiente" to continue to the next question
+    - **No lives left**: Game over dialog appears - you can retry the quiz later
+  </Step>
+  
+  <Step title="Complete the Quiz">
+    Answer all questions correctly to complete the quiz, earn +20 XP, and unlock the next level.
+  </Step>
+</Steps>
+
+## Quiz Structure
+
+### Question Format
+
+<Tabs>
+  <Tab title="Question Display">
+    - Clear, readable text in a white container
+    - Volume button for text-to-speech
+    - Question counter ("Pregunta 1 / 4")
+    - Progress bar at the top of the screen
+  </Tab>
+  
+  <Tab title="Answer Options">
+    - Four multiple-choice options (A, B, C, D)
+    - Circular letter badges for easy identification
+    - Tappable cards with hover feedback
+    - Color-coded after selection (green = correct, red = incorrect)
+  </Tab>
+  
+  <Tab title="Explanations">
+    - Displayed after every answer attempt
+    - Explains why the correct answer is right
+    - Scrollable if explanation is lengthy
+    - Color-matched to result (green box for correct, red for incorrect)
+  </Tab>
+</Tabs>
+
+## Lives System
+
+<CardGroup cols={2}>
+  <Card title="Three Hearts" icon="heart">
+    You start each quiz with 3 lives, displayed as hearts in the top-right corner.
+  </Card>
+  
+  <Card title="Wrong Answers" icon="heart-crack">
+    Each incorrect answer costs one life. Hearts turn from filled to outlined.
+  </Card>
+  
+  <Card title="Game Over" icon="heart-broken">
+    Losing all 3 lives ends the quiz attempt. You must start over from the beginning.
+  </Card>
+  
+  <Card title="Correct Answers" icon="heart-pulse">
+    Correct answers don't restore lives - they preserve your remaining hearts.
+  </Card>
+</CardGroup>
+
+<Warning>
+  The lives system adds pressure and encourages careful thinking before answering. Take your time to read each option thoroughly.
+</Warning>
+
+## Visual and Audio Feedback
+
+### Success Indicators
+
+**When you answer correctly**:
+- Green highlight on the correct option
+- Success sound effect ("correct.mp3")
+- Animated avatar appears with celebration reaction
+- Confetti animation (on quiz completion)
+- Green feedback box with checkmark
+
+### Error Indicators
+
+**When you answer incorrectly**:
+- Red highlight on your selected wrong answer
+- Green highlight reveals the correct answer
+- Error sound effect ("wrong.mp3")
+- Animated avatar appears with sad/fail reaction
+- Red feedback box with error icon
+- One heart disappears from lives counter
+
+<Note>
+  Avatar animations appear as a popup in the center of the screen for 1.5 seconds with smooth scale and opacity transitions.
+</Note>
+
+## Question Quality
+
+The AI generates quiz questions following strict guidelines:
+
+<Accordion title="Credible Distractors">
+  Wrong answers aren't obviously wrong. They're plausible alternatives that test real understanding rather than simple memorization. This forces deeper thinking about concepts.
+</Accordion>
+
+<Accordion title="Analytical Questions">
+  Questions test application and analysis, not just recall. Rather than "What is X?", questions ask "Why is X important?" or "When would you use X?"
+</Accordion>
+
+<Accordion title="Clear Explanations">
+  Every question includes a detailed explanation that provides context, clarifies misconceptions, and reinforces the correct concept.
+</Accordion>
+
+<Accordion title="Balanced Difficulty">
+  Questions range from foundational to advanced within each topic, scaffolding your learning progression.
+</Accordion>
+
+## Completion and Rewards
+
+### Successful Completion
+
+When you answer all quiz questions correctly (with at least 1 life remaining):
+
+1. **Confetti Celebration**: Explosive confetti animation fills the screen
+2. **Celebratory Dialog**: "¡Examen Completado! 🎓" with animated avatar
+3. **XP Award**: +20 XP (double the flashcard reward)
+4. **Level Complete**: Topic marked as completed
+5. **Progress Saved**: Completion saved to your profile
+6. **Next Level Unlocked**: Subsequent levels become available
+
+### Game Over
+
+If you lose all 3 lives:
+
+1. **Game Over Dialog**: "¡Te quedaste sin vidas! 💔"
+2. **Fail Avatar Animation**: Avatar shows disappointed reaction
+3. **Encouragement Message**: "No te desanimes. Repasa los apuntes y vuelve a intentarlo."
+4. **Return to Map**: Button to exit and review materials
+5. **No XP Earned**: Must complete successfully to earn rewards
+
+<Tip>
+  If you fail a quiz, review the related flashcards first. The repetition helps solidify concepts before attempting the quiz again.
+</Tip>
+
+## Quiz Strategy Tips
+
+<CardGroup cols={2}>
+  <Card title="Read Carefully" icon="eye">
+    Read each option completely before selecting. Distractors may seem correct at first glance.
+  </Card>
+  
+  <Card title="Use Audio" icon="headphones">
+    Listen to questions via text-to-speech. Hearing questions can trigger different recall pathways.
+  </Card>
+  
+  <Card title="Process of Elimination" icon="filter">
+    If unsure, eliminate obviously wrong answers first to improve your odds.
+  </Card>
+  
+  <Card title="Learn from Mistakes" icon="book-open">
+    Read explanations carefully, especially when wrong. These teach important nuances.
+  </Card>
+</CardGroup>
+
+## Technical Features
+
+### Text-to-Speech
+- Spanish language (Mexico locale)
+- 0.5x speed for clarity
+- Tap the volume icon to replay
+- Automatically stops when advancing
+
+### Animations
+- **Card flip**: Smooth option selection transitions
+- **Avatar popup**: Elastic scale-in animation with opacity fade
+- **Progress bar**: Real-time completion tracking
+- **Confetti**: Particle explosion on quiz completion
+
+### Accessibility
+- High contrast color coding
+- Large, tappable option cards
+- Scrollable content for long questions/explanations
+- Clear visual hierarchy
+
+## Quiz vs Flashcards
+
+| Feature | Flashcards | Quizzes |
+|---------|-----------|--------|
+| **Format** | Question/Answer flip | Multiple choice |
+| **Lives** | Unlimited reviews | 3 lives (hearts) |
+| **XP Reward** | +10 XP | +20 XP |
+| **Difficulty** | Recall-based | Analysis-based |
+| **Feedback** | Self-assessed | Immediate validation |
+| **Learning Style** | Memorization | Comprehension testing |
+| **Retry System** | Review loop in session | Full restart on game over |
+
+<Note>
+  Use flashcards to build foundational knowledge, then use quizzes to test and solidify understanding.
+</Note>
+
+## Best Practices
+
+<Accordion title="When should I take quizzes?">
+  Take quizzes after completing related flashcard levels. This ensures you have baseline knowledge before testing deeper understanding.
+</Accordion>
+
+<Accordion title="How many times can I retry a failed quiz?">
+  Unlimited retries. Quiz progress resets on game over, allowing you to attempt as many times as needed to master the material.
+</Accordion>
+
+<Accordion title="Do wrong answers affect my overall progress?">
+  Wrong answers only affect the current quiz attempt (via the lives system). They don't impact your profile, XP, or level progression negatively.
+</Accordion>
+
+<Accordion title="Can I skip questions?">
+  No. Questions must be answered in sequence. This ensures comprehensive topic coverage and prevents selective learning.
+</Accordion>
+
+## Related Features
+
+- **[Flashcards](/features/flashcards)**: Build foundational knowledge before taking quizzes
+- **[Levels](/features/levels)**: Understand quiz levels in the overall progression system
+- **[Gamification](/features/gamification)**: Learn how quiz XP contributes to your total progress

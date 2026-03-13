@@ -1,0 +1,81 @@
+---
+title: "DocumentEntity"
+description: "Represents uploaded documents and their AI processing status in StudyQuest"
+---
+
+## Overview
+
+DocumentEntity represents a user-uploaded study document (PDF, etc.). It tracks the file location, AI-generated summary, and processing status.
+
+## Properties
+
+<ParamField path="id" type="String" required>
+  Unique identifier for the document
+</ParamField>
+
+<ParamField path="title" type="String" required>
+  Display name of the document
+</ParamField>
+
+<ParamField path="fileUrl" type="String" required>
+  URL to the uploaded file in storage
+</ParamField>
+
+<ParamField path="summary" type="String?">
+  AI-generated summary of the document content. Can be null if AI processing is not yet complete.
+</ParamField>
+
+<ParamField path="status" type="String" required>
+  Processing status of the document. Possible values:
+  - `'processing'` - AI is currently analyzing the document
+  - `'ready'` - Document is processed and ready for study
+  - `'error'` - Processing failed
+</ParamField>
+
+<ParamField path="uploadDate" type="DateTime" required>
+  Timestamp when the document was uploaded
+</ParamField>
+
+## Constructor
+
+```dart DocumentEntity
+const DocumentEntity({
+  required this.id,
+  required this.title,
+  required this.fileUrl,
+  this.summary,
+  required this.status,
+  required this.uploadDate,
+});
+```
+
+## Usage Example
+
+```dart
+// Creating a new document entity
+final document = DocumentEntity(
+  id: 'doc_123',
+  title: 'Biology Chapter 5',
+  fileUrl: 'https://storage.example.com/biology-ch5.pdf',
+  summary: null, // Still processing
+  status: 'processing',
+  uploadDate: DateTime.now(),
+);
+
+// Checking document status
+if (document.status == 'ready' && document.summary != null) {
+  print('Document ready: ${document.summary}');
+} else if (document.status == 'processing') {
+  print('Still processing...');
+} else {
+  print('Processing error');
+}
+```
+
+## Status Flow
+
+```
+Upload → 'processing' → 'ready' (with summary)
+                     ↓
+                  'error' (if failed)
+```

@@ -1,0 +1,235 @@
+---
+title: Introduction
+description: Transform your study materials into interactive learning experiences with AI-powered flashcards and quizzes
+---
+
+## What is StudyQuest?
+
+StudyQuest is an AI-powered mobile study platform that transforms PDF documents into interactive, gamified learning experiences. Built with Flutter and powered by Google Gemini AI, StudyQuest automatically generates flashcards and quizzes from your study materials, making learning more engaging and effective.
+
+<CardGroup cols={2}>
+  <Card title="AI-Powered" icon="brain" iconType="duotone">
+    Google Gemini AI analyzes your PDFs and creates intelligent study materials
+  </Card>
+  <Card title="Mobile-First" icon="mobile" iconType="duotone">
+    Native Flutter app for iOS and Android with smooth performance
+  </Card>
+  <Card title="Gamified Learning" icon="trophy" iconType="duotone">
+    Track progress, earn achievements, and level up your knowledge
+  </Card>
+  <Card title="Offline Ready" icon="cloud-arrow-down" iconType="duotone">
+    Study anywhere with local caching and sync capabilities
+  </Card>
+</CardGroup>
+
+## How It Works
+
+StudyQuest follows a simple but powerful workflow:
+
+<Steps>
+  <Step title="Upload Your PDF">
+    Select any study material - textbooks, lecture notes, research papers - and upload it to StudyQuest. The app stores it securely in Supabase Storage.
+  </Step>
+  
+  <Step title="AI Processing">
+    A Python worker powered by Google Gemini AI processes your document:
+    - Extracts text from all pages
+    - Identifies key concepts and topics
+    - Generates relevant flashcards with questions and answers
+    - Creates multiple-choice quizzes with explanations
+  </Step>
+  
+  <Step title="Interactive Study">
+    Access your personalized study materials:
+    - Review flashcards with spaced repetition
+    - Take quizzes to test your knowledge
+    - Track mastery levels for each concept
+  </Step>
+  
+  <Step title="Track Progress">
+    Monitor your learning journey with gamified metrics:
+    - Complete levels and topics
+    - Earn XP and achievements
+    - View your study streaks and statistics
+  </Step>
+</Steps>
+
+## Key Features
+
+### Smart PDF Processing
+
+The backend worker automatically analyzes your documents and creates structured learning materials:
+
+```python backend/worker.py
+# AI generates topics, flashcards, and quizzes from PDF content
+def generate_content_for_chunk(chunk_text, chunk_index):
+    prompt = f"""
+    Actúa como un profesor universitario riguroso. Analiza esta sección extraída de un material de estudio.
+    
+    Tu tarea es extraer los conceptos clave de esta sección específica y crear material de estudio.
+    Dependiendo de la cantidad de información en esta sección, crea entre 1 y 3 Temas ("topics").
+    
+    Cada tema debe tener entre 3 y 5 flashcards con conceptos CRUCIALES.
+    Cada tema debe tener entre 2 y 4 quizzes (opción múltiple, 4 opciones).
+    """
+```
+
+### Clean Architecture
+
+Built with Flutter best practices following clean architecture principles:
+
+- **Presentation Layer**: BLoC pattern for state management
+- **Domain Layer**: Business logic and entities
+- **Data Layer**: Repositories and remote data sources
+
+```dart lib/main.dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await NotificationService.init();
+  
+  // 1. Initialize Supabase
+  await Supabase.initialize(
+    url: Secrets.supabaseUrl,
+    anonKey: Secrets.supabaseAnonKey,
+  );
+
+  // 2. Initialize Dependency Injection
+  await di.init();
+
+  runApp(const MyApp());
+}
+```
+
+### Supabase Backend
+
+Leverages Supabase for a complete backend solution:
+
+- **Authentication**: Secure user accounts with email/password
+- **Database**: PostgreSQL for storing documents, topics, flashcards, and quizzes
+- **Storage**: PDF file storage with user-scoped access
+- **Real-time**: Live updates when AI processing completes
+
+### Gamified Learning Experience
+
+Motivate users with game-like progression:
+
+- Level-based topic organization
+- XP and achievement system
+- Study streaks and statistics
+- Mastery levels for flashcards
+- Visual progress tracking
+
+## Architecture Overview
+
+### Mobile App (Flutter)
+
+The Flutter app follows a feature-first structure with clean architecture:
+
+```
+lib/
+├── core/
+│   ├── errors/          # Error handling
+│   ├── services/        # Platform services (notifications, etc.)
+│   ├── theme/          # App theming
+│   └── widgets/        # Reusable UI components
+├── features/
+│   ├── auth/           # Authentication feature
+│   │   ├── data/       # Data sources and models
+│   │   ├── domain/     # Entities and repositories
+│   │   └── presentation/ # BLoC and UI
+│   └── home/           # Document management feature
+│       ├── data/
+│       ├── domain/
+│       └── presentation/
+└── injection_container.dart  # Dependency injection setup
+```
+
+### Backend Worker (Python)
+
+A Python worker monitors Supabase for new documents and processes them:
+
+```python
+# Main worker loop
+while True:
+    response = supabase.table('documents').select("*").eq('status', 'processing').execute()
+    documents = response.data
+    
+    if documents and len(documents) > 0:
+        for doc in documents:
+            process_document(doc)
+    else:
+        time.sleep(5)
+```
+
+### Database Schema
+
+The Supabase database contains these main tables:
+
+- **documents**: Uploaded PDF files with processing status
+- **topics**: AI-generated topics extracted from documents
+- **flashcards**: Question-answer pairs for each topic
+- **quizzes**: Multiple-choice questions with explanations
+- **user_profiles**: User progress and gamification data
+
+## Technology Stack
+
+<CardGroup cols={2}>
+  <Card title="Flutter SDK" icon="mobile">
+    Cross-platform mobile framework for iOS and Android
+    
+    Version: SDK ^3.10.7
+  </Card>
+  
+  <Card title="Supabase" icon="database">
+    Backend-as-a-Service for auth, database, and storage
+    
+    Package: supabase_flutter ^2.8.3
+  </Card>
+  
+  <Card title="Google Gemini AI" icon="sparkles">
+    Large language model for content generation
+    
+    Model: gemini-2.5-flash
+  </Card>
+  
+  <Card title="BLoC Pattern" icon="diagram-project">
+    State management with flutter_bloc
+    
+    Package: flutter_bloc ^8.1.3
+  </Card>
+</CardGroup>
+
+### Key Dependencies
+
+```yaml pubspec.yaml
+dependencies:
+  flutter_bloc: ^8.1.3      # State management
+  supabase_flutter: ^2.8.3  # Backend
+  get_it: ^7.6.0            # Dependency injection
+  dartz: ^0.10.1            # Functional error handling
+  file_picker: ^8.0.0       # PDF file selection
+  equatable: ^2.0.5         # Value equality
+```
+
+## Next Steps
+
+Ready to get started? Follow these guides:
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get your first PDF processed in 10 minutes
+  </Card>
+  
+  <Card title="Installation" icon="download" href="/setup/installation">
+    Install Flutter SDK and clone the repository
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/setup/configuration">
+    Set up environment variables and API keys
+  </Card>
+  
+  <Card title="Supabase Setup" icon="database" href="/setup/supabase">
+    Configure your Supabase project and deploy the worker
+  </Card>
+</CardGroup>

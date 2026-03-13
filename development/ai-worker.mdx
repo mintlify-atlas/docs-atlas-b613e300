@@ -1,0 +1,601 @@
+---
+title: "AI Worker"
+description: "Python worker for PDF processing and AI-powered content generation"
+---
+
+## Overview
+
+The StudyQuest AI Worker is a **Python-based microservice** that runs independently from the Flutter app. It continuously polls the Supabase database for uploaded PDFs, processes them, and generates educational content using Google's Gemini AI.
+
+## Architecture
+
+```
+┌─────────────┐
+│   Flutter   │
+│     App     │
+└──────┬──────┘
+       │
+       │ 1. User uploads PDF
+       ▼
+┌──────────────────┐
+│  Supabase        │
+│  ┌────────────┐  │
+│  │  Storage   │  │ 2. PDF stored
+│  │   (pdfs)   │  │
+│  └────────────┘  │
+│  ┌────────────┐  │
+│  │ Database   │  │ 3. Record created
+│  │(documents) │  │    status='processing'
+│  └────────────┘  │
+└────────┬─────────┘
+         │
+         │ 4. Worker polls
+         ▼
+┌──────────────────┐
+│  Python Worker   │
+│  (worker.py)     │
+│                  │
+│  1. Download PDF │
+│  2. Extract text │
+│  3. Chunk text   │
+│  4. Call Gemini  │
+│  5. Save results │
+│  6. Update status│
+└────────┬─────────┘
+         │
+         │ 5. Calls AI API
+         ▼
+┌──────────────────┐
+│  Google Gemini   │
+│      API         │
+│  (gemini-2.5)    │
+└──────────────────┘
+```
+
+## Worker Initialization
+
+The worker loads environment variables and initializes clients:
+
+```python backend/worker.py
+import os
+import time
+import json
+import google.generativeai as genai
+from supabase import create_client, Client
+from pypdf import PdfReader
+from io import BytesIO
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not all([SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY]):
+    raise Exception("❌ Missing environment variables in backend/.env")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-2.5-flash')
+```
+
+<Note>
+  **Why gemini-2.5-flash?** This model excels at following structured instructions and generating JSON, perfect for educational content.
+</Note>
+
+## PDF Processing Pipeline
+
+The worker processes documents in several stages:
+
+<Steps>
+  <Step title="Poll Database">
+    Continuously check for documents with `status='processing'`
+  </Step>
+  
+  <Step title="Download PDF">
+    Download the PDF file from Supabase Storage
+  </Step>
+  
+  <Step title="Extract Text">
+    Use PyPDF to extract all text from the PDF
+  </Step>
+  
+  <Step title="Chunk Text">
+    Split text into manageable chunks (25,000 characters)
+  </Step>
+  
+  <Step title="Generate Content">
+    Send each chunk to Gemini AI for analysis
+  </Step>
+  
+  <Step title="Parse Results">
+    Extract topics, flashcards, and quizzes from AI response
+  </Step>
+  
+  <Step title="Save to Database">
+    Insert generated content into Supabase tables
+  </Step>
+  
+  <Step title="Update Status">
+    Mark document as `status='ready'`
+  </Step>
+</Steps>
+
+### Main Loop
+
+```python backend/worker.py
+def main():
+    print("🤖 StudyQuest AI Worker initiated...")
+    print("Waiting for documents in queue...")
+    
+    while True:
+        try:
+            # Poll for processing documents
+            response = supabase.table('documents')
+                .select("*")
+                .eq('status', 'processing')
+                .execute()
+            
+            documents = response.data if hasattr(response, 'data') else response
+            
+            if documents and len(documents) > 0:
+                for doc in documents:
+                    process_document(doc)
+            else:
+                time.sleep(5)  # Wait 5 seconds before polling again
+                
+        except Exception as e:
+            print(f"Error in main loop: {e}")
+            time.sleep(10)
+
+if __name__ == "__main__":
+    main()
+```
+
+## Text Extraction
+
+Download and extract text from PDFs using PyPDF:
+
+```python backend/worker.py
+def extract_all_text_from_pdf(url):
+    print(f"   ⬇️ Downloading PDF: {url}...")
+    response = requests.get(url)
+    
+    if response.status_code != 200:
+        raise Exception("Error downloading PDF from Supabase Storage")
+    
+    print("   📖 Reading PDF...")
+    f = BytesIO(response.content)
+    reader = PdfReader(f)
+    
+    full_text = ""
+    # Read ALL pages
+    for page in reader.pages:
+        text = page.extract_text()
+        if text:
+            full_text += text + "\n"
+    
+    return full_text
+```
+
+<Warning>
+  **OCR Limitation**: PyPDF only works with text-based PDFs. Scanned documents (images) require OCR preprocessing.
+</Warning>
+
+## Chunking Strategy
+
+Large PDFs are split into chunks to stay within AI token limits:
+
+```python backend/worker.py
+def process_document(doc):
+    doc_id = doc['id']
+    print(f"\n🚀 Processing document: {doc['title']} ({doc_id})")
+    
+    try:
+        # 1. Extract all text
+        full_text = extract_all_text_from_pdf(doc['file_url'])
+        
+        if not full_text.strip():
+            raise Exception("PDF appears empty or is a scanned image")
+        
+        # 2. Generate global context (title and summary)
+        global_context = generate_global_context(full_text)
+        short_title = global_context.get("short_title", "New World")
+        global_summary = global_context.get("summary", "Summary not available.")
+        
+        # 3. CHUNKING - Split into manageable pieces
+        chunk_size = 25000  # Characters per chunk
+        chunks = [
+            full_text[i:i+chunk_size] 
+            for i in range(0, len(full_text), chunk_size)
+        ]
+        
+        print(f"   ✂️ Document split into {len(chunks)} chunks.")
+        
+        all_topics = []
+        
+        # 4. Process each chunk
+        for i, chunk in enumerate(chunks):
+            if i > 0: 
+                time.sleep(2)  # Rate limiting
+            
+            ai_data = generate_content_for_chunk(chunk, i + 1)
+            
+            if 'topics' in ai_data:
+                for topic in ai_data['topics']:
+                    # Only save topics with actual content
+                    if len(topic.get('flashcards', [])) > 0 or \
+                       len(topic.get('quizzes', [])) > 0:
+                        all_topics.append(topic)
+        
+        # Save to database...
+```
+
+<Tip>
+  **Optimal Chunk Size**: 25,000 characters balances context retention with API limits. Adjust based on your needs.
+</Tip>
+
+## AI Content Generation
+
+The worker uses carefully crafted prompts to generate structured educational content:
+
+```python backend/worker.py
+def generate_content_for_chunk(chunk_text, chunk_index):
+    print(f"   🧠 AI Analyzing chunk {chunk_index}...")
+    
+    prompt = f"""
+    Act as a rigorous university professor. Analyze this section from study material.
+    
+    --- SECTION START ---
+    {chunk_text} 
+    --- SECTION END ---
+    
+    Your task is to extract key concepts from this section and create study materials.
+    Depending on the information density, create 1 to 3 Topics.
+    
+    Strict JSON rules:
+    1. If no relevant information (e.g., index or bibliography), return "topics": []
+    2. Each topic must have 3 to 5 flashcards with CRITICAL concepts.
+    3. Each topic must have 2 to 4 quizzes (multiple choice, 4 options).
+    4. Quiz options should not be obvious; include credible distractors.
+    5. Respond with pure JSON only, no markdown code blocks.
+    
+    Expected format:
+    {{
+        "topics": [
+            {{
+                "title": "Specific Topic Name",
+                "description": "Brief description of this topic.",
+                "flashcards": [
+                    {{"front": "Concept or Question", "back": "Clear definition"}}
+                ],
+                "quizzes": [
+                    {{
+                        "question": "Analytical question",
+                        "options": ["A", "B", "C", "D"],
+                        "correct_index": 0,
+                        "explanation": "Why it's correct."
+                    }}
+                ]
+            }}
+        ]
+    }}
+    """
+    
+    try:
+        response = model.generate_content(prompt)
+        
+        # Robust JSON cleaning
+        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        start_idx = clean_text.find('{')
+        end_idx = clean_text.rfind('}') + 1
+        clean_text = clean_text[start_idx:end_idx]
+        
+        return json.loads(clean_text)
+        
+    except Exception as e:
+        print(f"     ⚠️ Warning: AI failed on chunk {chunk_index}: {e}")
+        return {"topics": []}
+```
+
+<Note>
+  **Prompt Engineering**: The prompt is highly structured to ensure Gemini returns valid JSON with educational content.
+</Note>
+
+## Global Context Generation
+
+The worker generates a catchy title and summary for the entire document:
+
+```python backend/worker.py
+def generate_global_context(full_text):
+    print("   📝 Generating title and global summary...")
+    
+    prompt = f"""
+    Read the beginning and end of this document.
+    1. Create a short, epic, attractive title (max 4 words) for this "world"
+       based on the main topic (e.g., "Cisco Networks", "Basic Cybersecurity").
+    2. Write a 2-3 sentence motivating summary.
+    
+    Return ONLY JSON with this exact format:
+    {{
+        "short_title": "Short World Name",
+        "summary": "Motivating summary of what they'll learn."
+    }}
+    
+    Document start:
+    {full_text[:4000]}
+    
+    ...
+    
+    Document end:
+    {full_text[-4000:]}
+    """
+    
+    try:
+        response = model.generate_content(prompt)
+        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        start_idx = clean_text.find('{')
+        end_idx = clean_text.rfind('}') + 1
+        return json.loads(clean_text[start_idx:end_idx])
+    except Exception as e:
+        print(f"Error generating global context: {e}")
+        return {
+            "short_title": "Unexplored World", 
+            "summary": "A new world of knowledge."
+        }
+```
+
+## Database Storage
+
+Generated content is saved to three Supabase tables:
+
+```python backend/worker.py
+# Save topics, flashcards, and quizzes
+for index, topic_data in enumerate(all_topics):
+    # Insert topic
+    topic_response = supabase.table('topics').insert({
+        'document_id': doc_id,
+        'title': topic_data['title'],
+        'description': topic_data.get('description', ''),
+        'order_index': index
+    }).execute()
+    
+    topic_id = topic_response.data[0]['id']
+    
+    # Insert flashcards
+    if 'flashcards' in topic_data:
+        flashcards_to_insert = []
+        for fc in topic_data['flashcards']:
+            flashcards_to_insert.append({
+                'document_id': doc_id,
+                'topic_id': topic_id,
+                'front_text': fc['front'],
+                'back_text': fc['back'],
+                'mastery_level': 1
+            })
+        if flashcards_to_insert:
+            supabase.table('flashcards').insert(flashcards_to_insert).execute()
+    
+    # Insert quizzes
+    if 'quizzes' in topic_data:
+        quizzes_to_insert = []
+        for q in topic_data['quizzes']:
+            quizzes_to_insert.append({
+                'document_id': doc_id,
+                'topic_id': topic_id,
+                'question_text': q['question'],
+                'options': q['options'],
+                'correct_answer_index': q['correct_index'],
+                'explanation': q.get('explanation', '')
+            })
+        if quizzes_to_insert:
+            supabase.table('quizzes').insert(quizzes_to_insert).execute()
+    
+    print(f"      ✓ Level '{topic_data['title']}' configured.")
+```
+
+## Error Handling
+
+The worker includes comprehensive error handling:
+
+```python backend/worker.py
+def process_document(doc):
+    doc_id = doc['id']
+    print(f"\n🚀 Processing document: {doc['title']} ({doc_id})")
+    
+    try:
+        # ... processing logic ...
+        
+        # Update document on success
+        print(f"   ✅ Renaming to '{short_title}' and finalizing...")
+        supabase.table('documents').update({
+            'title': short_title,
+            'status': 'ready',
+            'summary_text': global_summary
+        }).eq('id', doc_id).execute()
+        
+        print("🎉 Process completed successfully! World is ready to play.")
+        
+    except Exception as e:
+        print(f"❌ Critical error processing document {doc_id}: {e}")
+        traceback.print_exc()
+        
+        try:
+            # Mark document as error
+            supabase.table('documents').update({
+                'status': 'error'
+            }).eq('id', doc_id).execute()
+        except:
+            pass
+```
+
+<Warning>
+  Always update document status to `error` if processing fails. This prevents the worker from retrying indefinitely.
+</Warning>
+
+## Retry Logic
+
+The worker implements rate limiting and retry logic:
+
+```python
+# Rate limiting between chunks
+for i, chunk in enumerate(chunks):
+    if i > 0: 
+        time.sleep(2)  # Wait 2 seconds between AI calls
+    
+    ai_data = generate_content_for_chunk(chunk, i + 1)
+```
+
+<Tip>
+  **API Rate Limits**: Google Gemini has rate limits. The 2-second delay prevents hitting these limits on large documents.
+</Tip>
+
+## Deployment Considerations
+
+<AccordionGroup>
+  <Accordion title="Environment Variables">
+    Create a `.env` file in the `backend/` directory:
+    
+    ```bash backend/.env
+    SUPABASE_URL=https://your-project.supabase.co
+    SUPABASE_KEY=your-service-role-key
+    GEMINI_API_KEY=your-gemini-api-key
+    ```
+    
+    <Warning>
+      Use the **service role key** for the worker, not the anon key. The worker needs full database access.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Running Locally">
+    Install dependencies and run:
+    
+    ```bash
+    cd backend
+    pip install -r requirements.txt
+    python worker.py
+    ```
+  </Accordion>
+  
+  <Accordion title="Production Deployment">
+    Deploy the worker as a long-running service:
+    
+    **Option 1: Docker**
+    ```dockerfile
+    FROM python:3.11-slim
+    WORKDIR /app
+    COPY requirements.txt .
+    RUN pip install -r requirements.txt
+    COPY worker.py .
+    CMD ["python", "worker.py"]
+    ```
+    
+    **Option 2: Cloud Run**
+    - Deploy to Google Cloud Run as a background worker
+    - Set min instances to 1 to keep it always running
+    
+    **Option 3: Railway/Render**
+    - Deploy as a background worker service
+    - Ensure it restarts on failure
+  </Accordion>
+  
+  <Accordion title="Monitoring">
+    Add monitoring and logging:
+    
+    ```python
+    import logging
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+    
+    def process_document(doc):
+        logger.info(f"Processing document {doc['id']}")
+        # ...
+    ```
+  </Accordion>
+  
+  <Accordion title="Scaling">
+    For high volume:
+    
+    1. **Multiple Workers**: Run multiple worker instances
+    2. **Job Queue**: Use a proper queue system (Bull, RabbitMQ)
+    3. **Batch Processing**: Process multiple documents in parallel
+    4. **Caching**: Cache AI responses for similar content
+  </Accordion>
+</AccordionGroup>
+
+## Testing the Worker
+
+Test the worker with a sample PDF:
+
+```bash
+# 1. Start the worker
+python backend/worker.py
+
+# 2. Upload a PDF through the Flutter app
+# 3. Watch the worker logs for processing
+
+# Expected output:
+🤖 StudyQuest AI Worker initiated...
+Waiting for documents in queue...
+
+🚀 Processing document: sample.pdf (abc123)
+   ⬇️ Downloading PDF: https://...
+   📖 Reading PDF...
+   📝 Generating title and global summary...
+   ✂️ Document split into 3 chunks.
+   🧠 AI Analyzing chunk 1...
+   🧠 AI Analyzing chunk 2...
+   🧠 AI Analyzing chunk 3...
+   📑 AI found 8 topics total. Saving to DB...
+      ✓ Level 'Introduction to AI' configured.
+      ✓ Level 'Machine Learning Basics' configured.
+      ...
+   ✅ Renaming to 'AI Fundamentals' and finalizing...
+🎉 Process completed successfully! World is ready to play.
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Worker Not Finding Documents">
+    - Check Supabase connection (URL and key)
+    - Verify document status is exactly `'processing'`
+    - Check Row Level Security policies on `documents` table
+  </Accordion>
+  
+  <Accordion title="PDF Download Fails">
+    - Ensure Supabase Storage bucket `pdfs` exists
+    - Verify bucket is public or worker has storage access
+    - Check `file_url` in database is valid
+  </Accordion>
+  
+  <Accordion title="AI Returns Invalid JSON">
+    - Check Gemini API key is valid
+    - Increase error handling in JSON parsing
+    - Log raw AI response for debugging
+  </Accordion>
+  
+  <Accordion title="Empty Flashcards/Quizzes">
+    - PDF might be image-based (needs OCR)
+    - Text extraction failed (check PDF format)
+    - AI prompt might need adjustment
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Supabase Integration" icon="database" href="/development/supabase-integration">
+    Learn how the Flutter app interacts with Supabase
+  </Card>
+  
+  <Card title="Architecture Overview" icon="diagram-project" href="/development/architecture">
+    See how the worker fits into the overall system
+  </Card>
+</CardGroup>

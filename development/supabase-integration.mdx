@@ -1,0 +1,727 @@
+---
+title: "Supabase Integration"
+description: "Authentication, database queries, storage, and real-time features in StudyQuest"
+---
+
+## Overview
+
+StudyQuest uses **Supabase** as its backend-as-a-service, providing:
+
+- **Authentication**: Email/password login and registration
+- **PostgreSQL Database**: User profiles, documents, topics, flashcards, quizzes
+- **Storage**: PDF file hosting
+- **Row Level Security (RLS)**: Data access control
+- **Real-time Subscriptions**: Live updates (optional)
+
+## Supabase Client Setup
+
+### Initialization
+
+Initialize Supabase before the app starts:
+
+```dart lib/main.dart
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/secrets.dart';
+import 'injection_container.dart' as di;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: Secrets.supabaseUrl,
+    anonKey: Secrets.supabaseAnonKey,
+  );
+
+  // Initialize Dependency Injection
+  await di.init();
+
+  runApp(const MyApp());
+}
+```
+
+### Secrets Management
+
+Store credentials securely:
+
+```dart lib/core/secrets.dart
+class Secrets {
+  static const String supabaseUrl = 'https://your-project.supabase.co';
+  static const String supabaseAnonKey = 'your-anon-key-here';
+}
+```
+
+<Warning>
+  **Never commit secrets to Git!** Add `secrets.dart` to `.gitignore` and use environment variables in production.
+</Warning>
+
+### Dependency Injection
+
+Register the Supabase client as a singleton:
+
+```dart lib/injection_container.dart
+import 'package:get_it/get_it.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+final sl = GetIt.instance;
+
+Future<void> init() async {
+  // ...
+  
+  // External (Supabase Client)
+  sl.registerLazySingleton(() => Supabase.instance.client);
+}
+```
+
+Now any data source can inject `SupabaseClient`:
+
+```dart
+class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
+  final SupabaseClient supabaseClient;
+
+  AuthRemoteDataSourceImpl({required this.supabaseClient});
+  // ...
+}
+```
+
+## Authentication
+
+Supabase Auth handles user registration and login.
+
+### Registration
+
+Create a new user with email/password:
+
+```dart lib/features/auth/data/datasources/auth_remote_data_source.dart
+@override
+Future<UserModel> registerWithEmail(
+  String email, 
+  String password, 
+  String username
+) async {
+  try {
+    final response = await supabaseClient.auth.signUp(
+      email: email,
+      password: password,
+      data: {'username': username}, // Store in user metadata
+    );
+
+    if (response.user == null) {
+      throw const ServerFailure('Error registering user');
+    }
+
+    return UserModel.fromSupabaseUser(response.user!);
+  } on AuthException catch (e) {
+    throw ServerFailure(e.message);
+  } catch (e) {
+    throw const ServerFailure('Unknown error during registration');
+  }
+}
+```
+
+<Note>
+  User metadata (like username) is stored directly with the auth user. Access it via `user.userMetadata['username']`.
+</Note>
+
+### Login
+
+Authenticate existing users:
+
+```dart lib/features/auth/data/datasources/auth_remote_data_source.dart
+@override
+Future<UserModel> loginWithEmail(String email, String password) async {
+  try {
+    final response = await supabaseClient.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+
+    if (response.user == null) {
+      throw const ServerFailure('User is null after login');
+    }
+
+    return UserModel.fromSupabaseUser(response.user!);
+  } on AuthException catch (e) {
+    throw ServerFailure(e.message);
+  } catch (e) {
+    throw const ServerFailure('Unknown error during login');
+  }
+}
+```
+
+### Logout
+
+```dart
+@override
+Future<void> logout() async {
+  await supabaseClient.auth.signOut();
+}
+```
+
+### Getting Current User
+
+Access the authenticated user:
+
+```dart
+final user = supabaseClient.auth.currentUser;
+if (user == null) {
+  throw Exception("User not authenticated");
+}
+
+print('User ID: ${user.id}');
+print('Email: ${user.email}');
+print('Username: ${user.userMetadata?['username']}');
+```
+
+## Database Queries
+
+Supabase provides a fluent query API for PostgreSQL.
+
+### Reading Data
+
+Fetch user's documents:
+
+```dart lib/features/home/data/datasources/home_remote_data_source.dart
+@override
+Future<List<DocumentModel>> getMyDocuments() async {
+  try {
+    final user = supabaseClient.auth.currentUser;
+    if (user == null) throw const ServerFailure("User not authenticated");
+
+    final response = await supabaseClient
+        .from('documents')
+        .select()
+        .eq('user_id', user.id)        // Filter by user
+        .order('created_at', ascending: false);  // Newest first
+
+    return (response as List)
+        .map((doc) => DocumentModel.fromJson(doc))
+        .toList();
+  } catch (e) {
+    throw ServerFailure('Error fetching documents: $e');
+  }
+}
+```
+
+<Tip>
+  Use `.select()` without arguments to fetch all columns, or specify columns: `.select('id, title, status')`
+</Tip>
+
+### Inserting Data
+
+Create a new document record:
+
+```dart lib/features/home/data/datasources/home_remote_data_source.dart
+final response = await supabaseClient.from('documents').insert({
+  'user_id': user.id,
+  'title': fileName,
+  'file_url': publicUrl,
+  'status': 'processing',
+}).select().single();  // Returns the created record
+
+return DocumentModel.fromJson(response);
+```
+
+<Note>
+  Use `.select().single()` after insert to return the newly created record.
+</Note>
+
+### Updating Data
+
+Update document status:
+
+```dart
+await supabaseClient.table('documents').update({
+  'title': short_title,
+  'status': 'ready',
+  'summary_text': global_summary
+}).eq('id', doc_id).execute();
+```
+
+### Deleting Data
+
+```dart
+await supabaseClient
+    .from('documents')
+    .delete()
+    .eq('id', documentId)
+    .execute();
+```
+
+### Complex Queries
+
+Fetch profile with aggregated stats:
+
+```dart
+@override
+Future<Map<String, dynamic>> getCurrentProfile() async {
+  final user = supabaseClient.auth.currentUser;
+  if (user == null) throw Exception("No active session");
+
+  try {
+    // Try to fetch existing profile
+    final response = await supabaseClient
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .single();
+    
+    return response;
+  } catch (e) {
+    // Profile doesn't exist, create it
+    print("Profile not found, creating new one...");
+    
+    final newProfile = await supabaseClient
+        .from('profiles')
+        .insert({
+          'id': user.id,
+          'total_xp': 0,
+          'current_streak': 0,
+          'last_activity_date': null,
+        })
+        .select()
+        .single();
+    
+    return newProfile;
+  }
+}
+```
+
+## Storage (File Uploads)
+
+Supabase Storage handles PDF uploads.
+
+### Upload File
+
+```dart lib/features/home/data/datasources/home_remote_data_source.dart
+@override
+Future<DocumentModel> uploadDocument(File file, String fileName) async {
+  try {
+    final user = supabaseClient.auth.currentUser;
+    if (user == null) throw const ServerFailure("User not authenticated");
+
+    // 1. Upload to Storage bucket 'pdfs'
+    final fileExt = fileName.split('.').last;
+    final uniqueName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+    final storagePath = '${user.id}/$uniqueName';
+
+    await supabaseClient.storage.from('pdfs').upload(
+      storagePath,
+      file,
+      fileOptions: const FileOptions(
+        cacheControl: '3600', 
+        upsert: false
+      ),
+    );
+
+    // 2. Get public URL
+    final publicUrl = supabaseClient.storage
+        .from('pdfs')
+        .getPublicUrl(storagePath);
+
+    // 3. Save reference in database
+    final response = await supabaseClient.from('documents').insert({
+      'user_id': user.id,
+      'title': fileName,
+      'file_url': publicUrl,
+      'status': 'processing',
+    }).select().single();
+
+    return DocumentModel.fromJson(response);
+  } catch (e) {
+    throw ServerFailure('Error uploading document: $e');
+  }
+}
+```
+
+<Warning>
+  Ensure the `pdfs` bucket exists in Supabase Storage and has appropriate public access policies.
+</Warning>
+
+### Delete File
+
+```dart
+await supabaseClient.storage
+    .from('pdfs')
+    .remove([storagePath]);
+```
+
+## Row Level Security (RLS)
+
+RLS ensures users can only access their own data.
+
+### Enable RLS
+
+In Supabase dashboard, enable RLS for each table:
+
+```sql
+ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE topics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE flashcards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quizzes ENABLE ROW LEVEL SECURITY;
+```
+
+### Create Policies
+
+**Documents Table**: Users can only see their own documents
+
+```sql
+-- SELECT Policy: Users can only read their own documents
+CREATE POLICY "Users can view own documents"
+  ON documents
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- INSERT Policy: Users can only insert their own documents
+CREATE POLICY "Users can create own documents"
+  ON documents
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- UPDATE Policy: Users can only update their own documents
+CREATE POLICY "Users can update own documents"
+  ON documents
+  FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- DELETE Policy: Users can only delete their own documents
+CREATE POLICY "Users can delete own documents"
+  ON documents
+  FOR DELETE
+  USING (auth.uid() = user_id);
+```
+
+**Topics Table**: Users can access topics for their documents
+
+```sql
+CREATE POLICY "Users can view topics from own documents"
+  ON topics
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM documents
+      WHERE documents.id = topics.document_id
+      AND documents.user_id = auth.uid()
+    )
+  );
+```
+
+**Flashcards and Quizzes**: Same pattern
+
+```sql
+CREATE POLICY "Users can view flashcards from own documents"
+  ON flashcards
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM documents
+      WHERE documents.id = flashcards.document_id
+      AND documents.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update own flashcards"
+  ON flashcards
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM documents
+      WHERE documents.id = flashcards.document_id
+      AND documents.user_id = auth.uid()
+    )
+  );
+```
+
+**Profiles Table**: Users can only access their own profile
+
+```sql
+CREATE POLICY "Users can view own profile"
+  ON profiles
+  FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+  ON profiles
+  FOR UPDATE
+  USING (auth.uid() = id);
+```
+
+<Tip>
+  Test RLS policies by creating test users and attempting unauthorized access. Properly configured RLS is critical for security.
+</Tip>
+
+## Database Functions (RPC)
+
+Use PostgreSQL functions for complex operations.
+
+### Add XP Function
+
+Create a function to safely increment XP:
+
+```sql
+CREATE OR REPLACE FUNCTION add_xp(amount INTEGER)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE profiles
+  SET total_xp = total_xp + amount
+  WHERE id = auth.uid();
+END;
+$$;
+```
+
+Call from Dart:
+
+```dart lib/features/auth/data/datasources/auth_remote_data_source.dart
+@override
+Future<void> addXp(int amount) async {
+  try {
+    final user = supabaseClient.auth.currentUser;
+    if (user == null) throw Exception("User not logged in");
+
+    // Call the RPC function
+    await supabaseClient.rpc('add_xp', params: {'amount': amount});
+
+    // ... handle streak logic ...
+  } catch (e) {
+    print("Error adding XP: $e");
+  }
+}
+```
+
+<Note>
+  **SECURITY DEFINER** allows the function to bypass RLS. Use carefully!
+</Note>
+
+## Real-Time Subscriptions (Optional)
+
+Listen for database changes in real-time:
+
+```dart
+final subscription = supabaseClient
+    .from('documents')
+    .stream(primaryKey: ['id'])
+    .eq('user_id', user.id)
+    .listen((List<Map<String, dynamic>> data) {
+      // Handle updated documents
+      final documents = data.map((d) => DocumentModel.fromJson(d)).toList();
+      // Update UI
+    });
+
+// Don't forget to cancel
+subscription.cancel();
+```
+
+<Tip>
+  Real-time subscriptions are great for collaborative features or live status updates (e.g., PDF processing progress).
+</Tip>
+
+## Error Handling
+
+Handle Supabase-specific errors:
+
+```dart
+try {
+  final response = await supabaseClient
+      .from('documents')
+      .select()
+      .eq('user_id', user.id);
+  
+  return (response as List)
+      .map((doc) => DocumentModel.fromJson(doc))
+      .toList();
+      
+} on PostgrestException catch (e) {
+  // Database query error
+  throw ServerFailure('Database error: ${e.message}');
+} on StorageException catch (e) {
+  // Storage error
+  throw ServerFailure('Storage error: ${e.message}');
+} on AuthException catch (e) {
+  // Auth error
+  throw ServerFailure('Auth error: ${e.message}');
+} catch (e) {
+  // Generic error
+  throw ServerFailure('Unexpected error: $e');
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always Check Authentication">
+    Verify the user is logged in before database operations:
+    
+    ```dart
+    final user = supabaseClient.auth.currentUser;
+    if (user == null) {
+      throw const ServerFailure("User not authenticated");
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Service Role Key Carefully">
+    The **service role key** bypasses RLS. Only use it for:
+    - Admin operations
+    - Background workers (like the Python AI worker)
+    - Server-side operations
+    
+    Never expose it in client apps!
+  </Accordion>
+  
+  <Accordion title="Implement Proper Error Handling">
+    Always catch specific exceptions and provide user-friendly messages:
+    
+    ```dart
+    try {
+      // Supabase operation
+    } on AuthException catch (e) {
+      if (e.message.contains('Invalid login credentials')) {
+        throw ServerFailure('Incorrect email or password');
+      }
+      throw ServerFailure(e.message);
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Optimize Queries">
+    - Use `.select('col1, col2')` to fetch only needed columns
+    - Add indexes for frequently queried fields
+    - Use `.limit()` for pagination
+    - Cache results when appropriate
+  </Accordion>
+  
+  <Accordion title="Secure Storage Buckets">
+    Configure bucket policies to restrict access:
+    
+    ```sql
+    -- Only allow authenticated users to upload
+    CREATE POLICY "Authenticated users can upload"
+      ON storage.objects
+      FOR INSERT
+      WITH CHECK (
+        bucket_id = 'pdfs' AND
+        auth.role() = 'authenticated'
+      );
+    
+    -- Users can only access their own folder
+    CREATE POLICY "Users can view own files"
+      ON storage.objects
+      FOR SELECT
+      USING (
+        bucket_id = 'pdfs' AND
+        (storage.foldername(name))[1] = auth.uid()::text
+      );
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Testing Supabase Integration
+
+Mock Supabase client for unit tests:
+
+```dart test/auth_remote_data_source_test.dart
+import 'package:mocktail/mocktail.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:test/test.dart';
+
+class MockSupabaseClient extends Mock implements SupabaseClient {}
+class MockGoTrueClient extends Mock implements GoTrueClient {}
+
+void main() {
+  late AuthRemoteDataSourceImpl dataSource;
+  late MockSupabaseClient mockClient;
+  late MockGoTrueClient mockAuth;
+  
+  setUp(() {
+    mockClient = MockSupabaseClient();
+    mockAuth = MockGoTrueClient();
+    
+    when(() => mockClient.auth).thenReturn(mockAuth);
+    
+    dataSource = AuthRemoteDataSourceImpl(
+      supabaseClient: mockClient,
+    );
+  });
+  
+  test('loginWithEmail returns UserModel on success', () async {
+    // Arrange
+    final testUser = User(
+      id: '123',
+      email: 'test@test.com',
+      userMetadata: {'username': 'tester'},
+    );
+    
+    when(() => mockAuth.signInWithPassword(
+      email: any(named: 'email'),
+      password: any(named: 'password'),
+    )).thenAnswer((_) async => AuthResponse(user: testUser));
+    
+    // Act
+    final result = await dataSource.loginWithEmail(
+      'test@test.com',
+      'password',
+    );
+    
+    // Assert
+    expect(result.id, '123');
+    expect(result.email, 'test@test.com');
+    expect(result.username, 'tester');
+  });
+}
+```
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="RLS Blocking Queries">
+    **Symptom**: Queries return empty results even though data exists
+    
+    **Solution**: 
+    - Check RLS policies are correctly configured
+    - Use Supabase SQL editor to test queries with `SELECT * FROM table`
+    - Temporarily disable RLS to test: `ALTER TABLE table DISABLE ROW LEVEL SECURITY`
+  </Accordion>
+  
+  <Accordion title="Storage Upload Fails">
+    **Symptom**: `StorageException: Bucket not found`
+    
+    **Solution**:
+    - Create the bucket in Supabase dashboard
+    - Ensure bucket name matches code (`'pdfs'`)
+    - Check storage policies allow uploads
+  </Accordion>
+  
+  <Accordion title="Auth State Not Persisting">
+    **Symptom**: User logged out after app restart
+    
+    **Solution**:
+    - Supabase automatically persists auth state
+    - Check for `auth.signOut()` being called unexpectedly
+    - Use `supabaseClient.auth.currentSession` to check session
+  </Accordion>
+  
+  <Accordion title="CORS Errors in Web">
+    **Symptom**: Network errors in Flutter web app
+    
+    **Solution**:
+    - Add your web domain to Supabase Auth Redirect URLs
+    - Configure CORS in Supabase project settings
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Clean Architecture" icon="layer-group" href="/development/clean-architecture">
+    See how Supabase fits into the data layer
+  </Card>
+  
+  <Card title="AI Worker" icon="brain" href="/development/ai-worker">
+    Learn how the Python worker uses Supabase
+  </Card>
+</CardGroup>

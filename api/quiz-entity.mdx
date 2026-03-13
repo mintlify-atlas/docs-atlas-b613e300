@@ -1,0 +1,127 @@
+---
+title: "QuizEntity"
+description: "Represents multiple-choice quiz questions in StudyQuest"
+---
+
+## Overview
+
+QuizEntity represents a multiple-choice quiz question with options, correct answer index, and an explanation for the correct answer.
+
+## Properties
+
+<ParamField path="id" type="String" required>
+  Unique identifier for the quiz question
+</ParamField>
+
+<ParamField path="question" type="String" required>
+  The quiz question text
+</ParamField>
+
+<ParamField path="options" type="List<String>" required>
+  Array of answer options displayed to the user. Typically contains 4 choices.
+</ParamField>
+
+<ParamField path="correctIndex" type="int" required>
+  Zero-based index indicating which option in the `options` array is correct.
+  For example, if `correctIndex` is 2, then `options[2]` is the correct answer.
+</ParamField>
+
+<ParamField path="explanation" type="String" required>
+  Detailed explanation of why the correct answer is correct. Shown after the user answers.
+</ParamField>
+
+## Constructor
+
+```dart QuizEntity
+QuizEntity({
+  required this.id,
+  required this.question,
+  required this.options,
+  required this.correctIndex,
+  required this.explanation,
+});
+```
+
+## Factory Methods
+
+### fromMap
+
+Creates a QuizEntity from a Map, typically from Supabase database queries. Handles type conversion from dynamic database types.
+
+<ParamField path="map['id']" type="String" required>
+  Quiz question identifier from database
+</ParamField>
+
+<ParamField path="map['question_text']" type="String">
+  Question text from database. Defaults to 'Sin pregunta' if null.
+</ParamField>
+
+<ParamField path="map['options']" type="dynamic">
+  Options array from database. Converted to `List<String>`. Returns empty list if null.
+</ParamField>
+
+<ParamField path="map['correct_answer_index']" type="int" required>
+  Index of the correct answer in the options array
+</ParamField>
+
+<ParamField path="map['explanation']" type="String">
+  Explanation text from database. Defaults to empty string if null.
+</ParamField>
+
+```dart QuizEntity
+factory QuizEntity.fromMap(Map<String, dynamic> map) {
+  return QuizEntity(
+    id: map['id'] as String,
+    question: map['question_text'] ?? 'Sin pregunta',
+    // Supabase returns options as a dynamic list, ensure they are Strings
+    options: List<String>.from(map['options'] ?? []),
+    correctIndex: map['correct_answer_index'] as int,
+    explanation: map['explanation'] ?? '',
+  );
+}
+```
+
+## Usage Example
+
+```dart
+// Creating from database response
+final quizData = await supabase
+    .from('quiz_questions')
+    .select()
+    .eq('document_id', docId);
+
+final quizzes = quizData
+    .map((data) => QuizEntity.fromMap(data))
+    .toList();
+
+// Using in a quiz session
+for (var quiz in quizzes) {
+  print(quiz.question);
+  
+  // Display options
+  for (var i = 0; i < quiz.options.length; i++) {
+    print('${i + 1}. ${quiz.options[i]}');
+  }
+  
+  // User selects an answer (0-indexed)
+  int userAnswer = 1; // User selected option 2
+  
+  if (userAnswer == quiz.correctIndex) {
+    print('Correct!');
+  } else {
+    print('Incorrect. The correct answer was: ${quiz.options[quiz.correctIndex]}');
+  }
+  
+  print('Explanation: ${quiz.explanation}');
+}
+```
+
+## Database Schema Mapping
+
+| Database Column | Entity Property | Description |
+|----------------|----------------|-------------|
+| `id` | `id` | Unique identifier |
+| `question_text` | `question` | Question text |
+| `options` | `options` | Array of answer choices |
+| `correct_answer_index` | `correctIndex` | Index of correct answer |
+| `explanation` | `explanation` | Why the answer is correct |

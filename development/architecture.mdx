@@ -1,0 +1,262 @@
+---
+title: "Project Architecture"
+description: "Overall architecture and project structure of StudyQuest"
+---
+
+## Overview
+
+StudyQuest is built using **Flutter** for the mobile app and **Python** for the AI backend worker. The project follows Clean Architecture principles with clear separation of concerns across three main layers.
+
+## Project Structure
+
+The codebase is organized into features and core modules:
+
+```bash
+lib/
+├── core/                      # Shared utilities and services
+│   ├── errors/               # Error handling (Failure classes)
+│   ├── services/             # App-wide services (notifications)
+│   ├── theme/                # App theming
+│   └── widgets/              # Reusable UI components
+│
+├── features/                  # Feature modules (Clean Architecture)
+│   ├── auth/                 # Authentication feature
+│   │   ├── data/            # Data layer
+│   │   │   ├── datasources/ # Remote/local data sources
+│   │   │   ├── models/      # Data models (JSON serialization)
+│   │   │   └── repositories/# Repository implementations
+│   │   ├── domain/          # Domain layer (business logic)
+│   │   │   ├── entities/    # Pure Dart business objects
+│   │   │   └── repositories/# Repository interfaces/contracts
+│   │   └── presentation/    # Presentation layer (UI)
+│   │       ├── bloc/        # State management (BLoC)
+│   │       └── pages/       # UI screens
+│   │
+│   └── home/                 # Home/Documents feature
+│       ├── data/
+│       ├── domain/
+│       └── presentation/
+│
+├── injection_container.dart   # Dependency injection setup
+└── main.dart                  # App entry point
+
+backend/
+└── worker.py                  # Python AI worker for PDF processing
+```
+
+## Design Principles
+
+<Steps>
+  <Step title="Feature-Based Organization">
+    Each feature (auth, home) is self-contained with its own data, domain, and presentation layers.
+  </Step>
+  
+  <Step title="Layer Separation">
+    Clear boundaries between layers prevent tight coupling and make testing easier.
+  </Step>
+  
+  <Step title="Dependency Inversion">
+    High-level modules (domain) don't depend on low-level modules (data). Both depend on abstractions.
+  </Step>
+  
+  <Step title="Single Responsibility">
+    Each class has one reason to change, making the codebase maintainable.
+  </Step>
+</Steps>
+
+## Application Entry Point
+
+The app initializes Supabase, dependency injection, and notification services before starting:
+
+```dart lib/main.dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await NotificationService.init();
+  
+  // 1. Initialize Supabase
+  await Supabase.initialize(
+    url: Secrets.supabaseUrl,
+    anonKey: Secrets.supabaseAnonKey,
+  );
+
+  // 2. Initialize Dependency Injection
+  await di.init();
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => di.sl<AuthBloc>()),
+      ],
+      child: MaterialApp(
+        title: 'StudyQuest',
+        theme: AppTheme.lightTheme, 
+        home: const WelcomePage(),
+      ),
+    );
+  }
+}
+```
+
+## Dependency Injection
+
+StudyQuest uses **get_it** as a service locator for dependency injection:
+
+```dart lib/injection_container.dart
+import 'package:get_it/get_it.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+final sl = GetIt.instance; // Service Locator
+
+Future<void> init() async {
+  // Features - Auth 
+  sl.registerFactory(() => AuthBloc(authRepository: sl()));
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  // Features - Home (Documents)
+  sl.registerFactory(() => HomeBloc(homeRepository: sl()));
+  sl.registerLazySingleton<HomeRepository>(
+    () => HomeRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<HomeRemoteDataSource>(
+    () => HomeRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  // External (Supabase Client) 
+  sl.registerLazySingleton(() => Supabase.instance.client);
+}
+```
+
+<Note>
+  **Factory vs LazySingleton**: Use `registerFactory` for BLoCs (new instance each time) and `registerLazySingleton` for repositories and services (single instance).
+</Note>
+
+## Communication Flow
+
+Here's how data flows through the architecture:
+
+<Steps>
+  <Step title="User Interaction">
+    User interacts with a Widget (Presentation layer)
+  </Step>
+  
+  <Step title="Event Dispatch">
+    Widget dispatches an Event to the BLoC
+  </Step>
+  
+  <Step title="Business Logic">
+    BLoC processes the event and calls Repository (Domain layer)
+  </Step>
+  
+  <Step title="Data Fetching">
+    Repository implementation (Data layer) calls DataSource
+  </Step>
+  
+  <Step title="API Call">
+    DataSource communicates with Supabase
+  </Step>
+  
+  <Step title="State Update">
+    Result flows back through layers, BLoC emits new State
+  </Step>
+  
+  <Step title="UI Rebuild">
+    Widget listens to State changes and rebuilds UI
+  </Step>
+</Steps>
+
+## Backend Architecture
+
+The Python worker runs independently and processes PDFs:
+
+```
+Python Worker (worker.py)
+    ↓
+[Poll Supabase for status='processing']
+    ↓
+[Download PDF from Storage]
+    ↓
+[Extract text with PyPDF]
+    ↓
+[Chunk text into manageable pieces]
+    ↓
+[Send chunks to Google Gemini AI]
+    ↓
+[Generate topics, flashcards, quizzes]
+    ↓
+[Save to Supabase database]
+    ↓
+[Update document status='ready']
+```
+
+<Tip>
+  The worker and Flutter app are completely decoupled. They only communicate through the Supabase database, making the system scalable and maintainable.
+</Tip>
+
+## Core Modules
+
+### Error Handling
+
+All errors inherit from a base `Failure` class:
+
+```dart lib/core/errors/failures.dart
+abstract class Failure extends Equatable {
+  final String message;
+  const Failure(this.message);
+
+  @override
+  List<Object> get props => [message];
+}
+
+class ServerFailure extends Failure {
+  const ServerFailure(super.message);
+}
+```
+
+### Shared Services
+
+Core services live in `lib/core/services/`:
+
+- **NotificationService**: Handles local push notifications for streak reminders
+- **Theme**: Centralized app theming with custom color palettes
+
+### Reusable Widgets
+
+Common UI components in `lib/core/widgets/` can be used across features:
+
+```dart
+lib/core/widgets/
+└── reactive_avatar.dart  # User avatar with real-time updates
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Clean Architecture" icon="layer-group" href="/development/clean-architecture">
+    Deep dive into the three-layer architecture
+  </Card>
+  
+  <Card title="State Management" icon="diagram-project" href="/development/state-management">
+    Learn how BLoC handles app state
+  </Card>
+  
+  <Card title="Supabase Integration" icon="database" href="/development/supabase-integration">
+    Connect to backend services
+  </Card>
+  
+  <Card title="AI Worker" icon="brain" href="/development/ai-worker">
+    Understand PDF processing pipeline
+  </Card>
+</CardGroup>

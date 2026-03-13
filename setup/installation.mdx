@@ -1,0 +1,479 @@
+---
+title: Installation
+description: Install Flutter SDK, clone the repository, and set up your development environment
+---
+
+## Prerequisites
+
+Before installing StudyQuest, ensure your system meets these requirements:
+
+- **Operating System**: macOS, Windows, or Linux
+- **Disk Space**: At least 2.5 GB (not including IDE/tools)
+- **RAM**: Minimum 8 GB recommended
+- **Git**: Version control system
+
+## Install Flutter SDK
+
+StudyQuest requires Flutter SDK version 3.10.7 or higher.
+
+<Tabs>
+  <Tab title="macOS">
+    ### Using Homebrew (Recommended)
+    
+    ```bash
+    # Install Flutter
+    brew install --cask flutter
+    
+    # Verify installation
+    flutter --version
+    ```
+    
+    ### Manual Installation
+    
+    1. Download the Flutter SDK:
+       ```bash
+       curl -O https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.10.7-stable.zip
+       ```
+    
+    2. Extract and add to PATH:
+       ```bash
+       unzip flutter_macos_3.10.7-stable.zip
+       sudo mv flutter /usr/local/
+       echo 'export PATH="$PATH:/usr/local/flutter/bin"' >> ~/.zshrc
+       source ~/.zshrc
+       ```
+    
+    3. Run Flutter doctor:
+       ```bash
+       flutter doctor
+       ```
+    
+    <Note>
+      You'll need Xcode for iOS development. Install it from the Mac App Store.
+    </Note>
+  </Tab>
+  
+  <Tab title="Windows">
+    ### Using Chocolatey (Recommended)
+    
+    ```powershell
+    # Install Flutter
+    choco install flutter
+    
+    # Verify installation
+    flutter --version
+    ```
+    
+    ### Manual Installation
+    
+    1. Download the Flutter SDK from [flutter.dev](https://flutter.dev/docs/get-started/install/windows)
+    
+    2. Extract the zip file to `C:\src\flutter`
+    
+    3. Add to PATH:
+       - Search for "Environment Variables" in Windows
+       - Edit the `Path` variable
+       - Add `C:\src\flutter\bin`
+    
+    4. Run Flutter doctor:
+       ```powershell
+       flutter doctor
+       ```
+    
+    <Warning>
+      You'll need Android Studio for Android development. Visual Studio is required for Windows desktop support.
+    </Warning>
+  </Tab>
+  
+  <Tab title="Linux">
+    ### Using Snap (Ubuntu/Debian)
+    
+    ```bash
+    # Install Flutter
+    sudo snap install flutter --classic
+    
+    # Verify installation
+    flutter --version
+    ```
+    
+    ### Manual Installation
+    
+    1. Download the Flutter SDK:
+       ```bash
+       wget https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.10.7-stable.tar.xz
+       ```
+    
+    2. Extract and add to PATH:
+       ```bash
+       tar xf flutter_linux_3.10.7-stable.tar.xz
+       sudo mv flutter /usr/local/
+       echo 'export PATH="$PATH:/usr/local/flutter/bin"' >> ~/.bashrc
+       source ~/.bashrc
+       ```
+    
+    3. Run Flutter doctor:
+       ```bash
+       flutter doctor
+       ```
+    
+    <Note>
+      You'll need Android Studio for Android development. Install the necessary Linux development dependencies.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Verify Flutter Installation
+
+Run Flutter doctor to check your setup:
+
+```bash
+flutter doctor -v
+```
+
+You should see output similar to:
+
+```
+[✓] Flutter (Channel stable, 3.10.7, on macOS 14.0)
+[✓] Android toolchain - develop for Android devices
+[✓] Xcode - develop for iOS and macOS
+[✓] Chrome - develop for the web
+[✓] Android Studio (version 2023.1)
+[✓] VS Code (version 1.85.0)
+[✓] Connected device (2 available)
+```
+
+<Tip>
+  Don't worry if some items show warnings. You only need the platforms you plan to develop for.
+</Tip>
+
+## Install Development Tools
+
+### Android Studio (for Android development)
+
+<Steps>
+  <Step title="Download Android Studio">
+    Download from [developer.android.com/studio](https://developer.android.com/studio)
+  </Step>
+  
+  <Step title="Install Flutter and Dart Plugins">
+    1. Open Android Studio
+    2. Go to **Settings > Plugins**
+    3. Search for "Flutter" and install
+    4. The Dart plugin will be installed automatically
+  </Step>
+  
+  <Step title="Configure Android SDK">
+    ```bash
+    flutter doctor --android-licenses
+    ```
+    Accept all licenses by typing 'y' when prompted.
+  </Step>
+</Steps>
+
+### Xcode (for iOS development on macOS)
+
+<Steps>
+  <Step title="Install Xcode">
+    Download from the Mac App Store (requires Apple ID)
+  </Step>
+  
+  <Step title="Install Command Line Tools">
+    ```bash
+    sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+    sudo xcodebuild -runFirstLaunch
+    ```
+  </Step>
+  
+  <Step title="Install CocoaPods">
+    ```bash
+    sudo gem install cocoapods
+    ```
+  </Step>
+</Steps>
+
+## Clone the Repository
+
+Clone the StudyQuest repository to your local machine:
+
+```bash
+git clone https://github.com/your-org/study_quest.git
+cd study_quest
+```
+
+<Note>
+  Replace `your-org/study_quest` with the actual repository URL.
+</Note>
+
+## Install Dependencies
+
+Install all Flutter dependencies defined in `pubspec.yaml`:
+
+```bash
+flutter pub get
+```
+
+This installs the following packages:
+
+```yaml pubspec.yaml
+name: study_quest
+description: "A new Flutter project."
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core dependencies
+  cupertino_icons: ^1.0.8
+  
+  # State Management (BLoC Pattern)
+  flutter_bloc: ^8.1.3
+  equatable: ^2.0.5
+
+  # Dependency Injection
+  get_it: ^7.6.0
+  
+  # Backend and Data
+  supabase_flutter: ^2.8.3
+  http: ^1.2.1
+
+  # Utilities
+  dartz: ^0.10.1          # Functional programming
+  file_picker: ^8.0.0     # File selection
+  
+  # UI Enhancements
+  rive: ^0.13.1           # Animations
+  confetti: ^0.7.0        # Celebration effects
+  
+  # Media
+  flutter_tts: ^4.2.5     # Text-to-speech
+  audioplayers: ^6.6.0    # Audio playback
+  
+  # Notifications
+  flutter_local_notifications: ^17.1.2
+  timezone: ^0.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+```
+
+<Tip>
+  If you encounter dependency conflicts, try running `flutter pub upgrade` to get compatible versions.
+</Tip>
+
+## Platform-Specific Setup
+
+### Android Configuration
+
+Update the minimum SDK version in `android/app/build.gradle`:
+
+```gradle android/app/build.gradle
+android {
+    defaultConfig {
+        minSdkVersion 21  // Required for Supabase
+        targetSdkVersion 33
+    }
+}
+```
+
+<Warning>
+  Supabase Flutter requires minimum SDK 21 (Android 5.0).
+</Warning>
+
+### iOS Configuration
+
+Update the minimum iOS version in `ios/Podfile`:
+
+```ruby ios/Podfile
+platform :ios, '13.0'
+```
+
+Install iOS dependencies:
+
+```bash
+cd ios
+pod install
+cd ..
+```
+
+<Note>
+  If you encounter CocoaPods issues, try:
+  ```bash
+  cd ios
+  pod repo update
+  pod install
+  cd ..
+  ```
+</Note>
+
+## Verify Installation
+
+Check that everything is set up correctly:
+
+<Steps>
+  <Step title="Run Flutter Doctor">
+    ```bash
+    flutter doctor
+    ```
+    
+    Ensure all necessary items show green checkmarks.
+  </Step>
+  
+  <Step title="List Available Devices">
+    ```bash
+    flutter devices
+    ```
+    
+    You should see at least one device (emulator, simulator, or physical device).
+  </Step>
+  
+  <Step title="Run the App">
+    <CodeGroup>
+    ```bash iOS Simulator
+    flutter run -d ios
+    ```
+    
+    ```bash Android Emulator
+    flutter run -d android
+    ```
+    
+    ```bash Any Device
+    flutter run
+    ```
+    </CodeGroup>
+    
+    <Warning>
+      The app will crash on first run because you haven't configured Supabase yet. This is expected - continue to the Configuration guide.
+    </Warning>
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Flutter command not found">
+    **Cause**: Flutter is not in your system PATH
+    
+    **Solution**:
+    - Verify Flutter is installed: check if the `flutter` directory exists
+    - Add Flutter to PATH in your shell configuration file:
+      - macOS/Linux: `~/.zshrc` or `~/.bashrc`
+      - Windows: System Environment Variables
+    - Restart your terminal
+  </Accordion>
+  
+  <Accordion title="Android licenses not accepted">
+    **Cause**: You haven't accepted Android SDK licenses
+    
+    **Solution**:
+    ```bash
+    flutter doctor --android-licenses
+    ```
+    Type 'y' to accept each license.
+  </Accordion>
+  
+  <Accordion title="CocoaPods installation fails (iOS)">
+    **Cause**: Ruby version issues or CocoaPods corruption
+    
+    **Solution**:
+    ```bash
+    # Update Ruby gems
+    sudo gem update --system
+    
+    # Reinstall CocoaPods
+    sudo gem uninstall cocoapods
+    sudo gem install cocoapods
+    
+    # Clean and reinstall
+    cd ios
+    rm -rf Pods Podfile.lock
+    pod install
+    cd ..
+    ```
+  </Accordion>
+  
+  <Accordion title="Build fails with dependency conflicts">
+    **Cause**: Incompatible package versions
+    
+    **Solution**:
+    ```bash
+    # Clean the project
+    flutter clean
+    
+    # Delete pubspec.lock
+    rm pubspec.lock
+    
+    # Get fresh dependencies
+    flutter pub get
+    
+    # If issues persist, try upgrading
+    flutter pub upgrade
+    ```
+  </Accordion>
+  
+  <Accordion title="No devices available">
+    **Cause**: No emulators/simulators running or physical devices connected
+    
+    **Solution**:
+    
+    **For Android:**
+    - Open Android Studio > Tools > AVD Manager
+    - Create and start a virtual device
+    
+    **For iOS:**
+    - Open Xcode > Window > Devices and Simulators
+    - Select a simulator and click the play button
+    
+    **For Physical Device:**
+    - Enable Developer Mode on the device
+    - Connect via USB and trust the computer
+  </Accordion>
+</AccordionGroup>
+
+## Development Environment Tips
+
+<Card title="VS Code Extensions" icon="code">
+  For VS Code users, install these extensions:
+  
+  - **Flutter**: Official Flutter extension
+  - **Dart**: Dart language support
+  - **Dart Data Class Generator**: Generate model classes
+  - **Flutter Bloc**: BLoC pattern snippets
+</Card>
+
+<Card title="Hot Reload" icon="fire">
+  Use Flutter's hot reload for faster development:
+  
+  - Press `r` in the terminal to hot reload
+  - Press `R` to hot restart
+  - Press `q` to quit
+  
+  Or use your IDE's hot reload button.
+</Card>
+
+## Next Steps
+
+Now that Flutter is installed and the repository is cloned:
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/setup/configuration">
+    Configure environment variables and API keys
+  </Card>
+  
+  <Card title="Supabase Setup" icon="database" href="/setup/supabase">
+    Set up your Supabase project and database
+  </Card>
+  
+  <Card title="Run the App" icon="play" href="/quickstart">
+    Follow the quickstart guide to run StudyQuest
+  </Card>
+  
+  <Card title="Architecture" icon="diagram-project" href="/development/architecture">
+    Learn about the app's architecture
+  </Card>
+</CardGroup>
