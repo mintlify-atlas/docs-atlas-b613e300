@@ -1,0 +1,119 @@
+{
+  "projectType": "saas",
+  "projectName": "StudyQuest",
+  "projectDescription": "AI-powered mobile study platform that transforms PDFs into interactive flashcards and quizzes with gamification.",
+  "theme": "almond",
+  "primaryColor": "#2281fa",
+  "lightColor": "#095fd9",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Get Started",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Setup",
+            "pages": [
+              "setup/installation",
+              "setup/configuration",
+              "setup/supabase"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Features",
+        "groups": [
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/ai-content-generation",
+              "features/flashcards",
+              "features/quizzes",
+              "features/levels"
+            ]
+          },
+          {
+            "group": "User Experience",
+            "pages": [
+              "features/authentication",
+              "features/gamification",
+              "features/notifications"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "development/architecture",
+              "development/clean-architecture",
+              "development/state-management"
+            ]
+          },
+          {
+            "group": "Backend",
+            "pages": [
+              "development/ai-worker",
+              "development/supabase-integration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core Entities",
+            "pages": [
+              "api/user-entity",
+              "api/document-entity",
+              "api/flashcard-entity",
+              "api/quiz-entity",
+              "api/level-entity"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "api/auth-service",
+              "api/notification-service"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "AI-powered PDF processing with Google Gemini",
+    "Interactive flashcard and quiz generation",
+    "Progressive level system with difficulty tracking",
+    "User authentication and profiles with Supabase",
+    "Gamification with XP and achievements",
+    "Local notifications for study reminders",
+    "Clean architecture with BLoC state management",
+    "Cross-platform Flutter mobile app"
+  ],
+  "publicApiSurface": [
+    "AuthBloc - Authentication state management",
+    "UserEntity - User profile data model",
+    "DocumentEntity - Study document representation",
+    "FlashcardEntity - Flashcard with front/back content",
+    "QuizEntity - Multiple choice quiz with answers",
+    "LevelEntity - Progressive level with type and difficulty",
+    "NotificationService - Local notification management",
+    "AuthRepository - User authentication operations",
+    "HomeRepository - Document and content retrieval",
+    "LevelRepository - Level progression tracking"
+  ]
+}
